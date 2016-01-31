@@ -1,0 +1,44 @@
+DESCRIPTION="
+32-bit sparc
+
+Sparc was a risc processor design Sun Microsystems came up with to replace
+m68k in their Unix workstations.  With the advent of OpenSolaris and
+x86-64, Fujitsu mainframes may now use more of it than they do.
+
+This has been broken for a couple years, and nobody's bothered to fix it.
+"
+
+# Originally contributed by Bertl.
+
+KARCH=sparc
+KERNEL_PATH=arch/${KARCH}/boot/image
+BINUTILS_FLAGS=
+GCC_FLAGS=
+QEMU_TEST=$KARCH
+
+#BUILD_STATIC=all
+
+CONSOLE=ttyS0
+
+UCLIBC_CONFIG="
+TARGET_sparc=y
+UCLIBC_HAS_FPU=y
+FORCE_SHAREABLE_TEXT_SEGMENTS=y
+"
+
+LINUX_CONFIG="
+CONFIG_SCSI_SUNESP=y
+CONFIG_SUNLANCE=y
+CONFIG_SERIAL_SUNZILOG=y
+CONFIG_SERIAL_SUNZILOG_CONSOLE=y
+CONFIG_SUN_MOSTEK_RTC=y
+"
+
+#CONFIG_UNWIND_INFO
+#CONFIG_FORCED_INLINING
+#CONFIG_RTC_HCTOSYS
+
+emulator_command()
+{
+  echo qemu-system-sparc -cpu '"Fujitsu MB86907"' $(qemu_defaults "$@")
+}

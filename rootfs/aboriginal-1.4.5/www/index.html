@@ -1,0 +1,2237 @@
+<html>
+<title>Aboriginal Linux - We cross compile so you don't have to.</title>
+<body>
+<!--#include file="header.html" -->
+
+<b><h1>News</h1></b>
+
+
+<hr /><h2><a name="01-11-2016" />January 11, 2016</h2>
+<p>Aboriginal Linux <a href=downloads/aboriginal-1.4.5.tar.gz>1.4.5</a>
+is out, based on <a href=/hg/aboriginal/shortlog/1836>hg 1836</a>, using
+Linux 4.3.</p>
+
+<p>It's just a kernel version upgrade, no other changes. We've been
+consistently running a couple kernel versions behind, and I'd like to
+catch up.</p>
+
+<hr /><h2><a name="01-07-2016" />January 7, 2016</h2>
+<p>Aboriginal Linux <a href=downloads/aboriginal-1.4.4.tar.gz>1.4.4</a>
+is out, based on <a href=/hg/aboriginal/shortlog/1833>hg 1833</a>, using
+Linux 4.2. This release patches gcc 4.2.1 to build under gcc 5.2, fixes the
+sh2eb build, adds proper powerpc-440fp support (running under QEMU's -M bamboo
+board), and converts most architectures (armv4tl, armv5l, armv6l, i486,
+i586, i686, mips, mipsel, powerpc, sh4, x86_64) to use musl instead of
+uClinux.</p>
+
+<p>Dreamhost deleted a big chunk of history out of the mailing list web archive
+again. Last year it was just a few weeks, this time they retroactively zapped
+11 months (almost all of 2015).
+I <a href=http://landley.net/toybox/#12-21-2015>provided some details
+in another affected project</a>,
+but given that <a href=http://landley.net/dreamhost.txt>last</a> <a href=http://landley.net/dreamhost2.txt>time</a>
+they never filled in the previous gap in the archive, I don't hold out much
+hope. If history is a guide, they'll keep apologizing as long as I keep poking
+them about it, but nothing will ever get fixed. (Some of the vanished posts
+are in archive.org.)</p>
+
+<p>Due to the musl conversion, new <a href=control-images>build control
+images</a> are necessary to provide dropbear, strace, and linux from scratch.
+(Both strace-4.9 and Linux From Scratch 6.8 fail to build under musl for
+basically stupid reasons, in the case of LFS more than one package actually
+has an #if/else staircase for every known libc type ending in an #error if
+it doesn't recognize it. Since musl doesn't like and pretend to be glibc
+like uClibc does, I need to upgrade package versions...) Those aren't
+uploaded yet, but should be available soon.</p>
+
+<p>The system-image.sh build is now called every time by build.sh and
+handles its own dependencies: it rebuilds the rootfs, native compiler,
+and kernel images as necessary. (This means if you tweak the root
+filesystem contents, system-image.sh doesn't have to rebuild the kernel each
+time unless you're using SYSIMAGE_TYPE=rootfs instead of the default
+SYSIMAGE_TYPE=cpio so faster build and test cycles.)</p>
+
+<p>Several new config variables:</p>
+
+<ul>
+<li><p><b>MY_PATCH_DIR</b> - lets you specify an additional patch
+directory applied after sources/patches (in this case with one subdirectory
+per package instead of the package name in the prefix, so
+sources/patches/linux-thingy.patch would be patchdir/linux/thingy.patch
+instead).</p></li>
+
+<li><p><b>MY_ROOT_OVERLAY</b> - replaces SIMPLE_ROOT_OVERLAY, still a directory
+of files to cp -a into root-filesystem.</p></li>
+
+<li><p><b>MY_CROSS_PATH</b> and <b>MY_CROSS_PREFIX</b> - specify an external
+cross compiler. Providing a native compiler in that case (via MY_ROOT_OVERLAY)
+is your problem, native-compiler.sh generally won't work without a corresponding
+cross compiler built from the same source.</p></li>
+</ul>
+
+<p>You can now specify EXTRACT_ALL=force to populate the page cache
+(extract tarball and apply patches) even when the packages directory
+has a repository version of a package. (If you can't think of why
+you'd need to do that, you probably don't.)</p>
+
+<p>The miniconfig.sh creation script got moved from soures/toys into
+more/, and the mini.config used to build the kernel tarball is now
+saved in the system image tarball.</p>
+
+<hr /><h2><a name="05-11-2015" />November 5, 2015</h2>
+<p>Aboriginal Linux <a href=downloads/aboriginal-1.4.3.tar.gz>1.4.3</a>
+is out, based on <a href=/hg/aboriginal/shortlog/1807>hg 1807</a>, using
+Linux 4.1, toybox-0.6.1, musl-1.1.12, and busybox-1.24.1.</p>
+
+<p>Our first nommu target, sh2eb, builds a system-image that boots on the
+Numato Mimas v2 board described on the <a href=http://nommu.org/jcore>jcore
+processor site</a> (rather than under qemu).
+Toybox defconfig now builds nommu, we upgraded busybox versions to
+get some nommu fixes in hush, and there were several toolchain fixes
+since last time.</p>
+
+<p>Multiple users requested bzip2 compression-side back (even though you
+can build it natively), and we added strndup() from posix-2008 to the last-ever
+release of uClibc (which we're migrating off of in favor of musl-libc,
+but our old Linux From Scratch 6.8 <a href=control-images>build control
+image</a> refuses to build on a libc it doesn't specifically recognize
+so we need to upgrade the version of that to have a better test environment.</p>
+
+<p>We added an /etc/os-release file which is what Debian now recommends
+for OS version identification now that they've
+<a href=http://lwn.net/Articles/658809>given up</a> on the Linux Foundation's
+"Linux Standard Base" bureaucracy. Also the initramfs should have a /bin/sh
+symlink pointing to hush (which is replaced with a link to bash by the
+dev-environment.sh init script, but if you run-emulator.sh without the
+native-compiler overlay it's nice to have).</p>
+
+<hr /><h2><a name="13-09-2015" />September 13, 2015</h2>
+<p>Aboriginal Linux <a href=downloads/aboriginal-1.4.2.tar.gz>1.4.2</a>
+is out, based on <a href=/hg/aboriginal/shortlog/1786>hg 1786</a>, using
+Linux 4.0, toybox-0.6.0, and musl-1.1.11.</p>
+
+<p>Haven't updated busybox in a while because we're slowly replacing it with
+toybox. The list of busybox commands still in use is:</p>
+
+<blockquote><p>awk bunzip2 dd diff expr fdisk ftpd ftpget ftpput gunzip
+gzip hush less pgrep ping pkill ps route sha512sum tar test tr unxz vi
+wget xzcat zcat</p></blockquote>
+
+<p>The new "sh2eb" and "sh2elf" targets produce working cross compilers
+for the <a href=http://nommu.org/jcore>jcore j2</a> open processor, and provide
+a start for general nommu support. Userspace is not yet cooperating, mostly
+because I'm only halfway done cleaning out MMU assumptions in toybox, but
+I hope to hae that working next release.
+(This release switched from ash to hush as the /bin/sh busybox provides
+because hush works on nommu and ash doesn't.)</p>
+
+<p>The top level build.sh script now knows that if a target doesn't specify a
+KERNEL_PATH (where to grab the kernel binary out of the linux build), don't
+bother building anything but the cross compilers. This lets sh2elf stop
+early but still participate in buildall.</p>
+
+<p>Switched the x86-64 target to build with musl-libc instead of uClibc
+by default. The x86-64 target broke when we switched the uClibc config
+from pthreads to NPTL in January, but only certain uses of it: the
+more/chroot-splice.sh build still works fine. The symptom is that
+distcc's attempts to call out to the cross compiler from within qemu
+hang, due to some NPTL bug in uClibc that's not worth fixing because
+uClibc is going away. (I'm aware of uClibc-ng, I'm also aware of
+ecommstation's attempts to keep OS/2 alive.) This problem is further
+compounded by QEMU's failure to emulate x86-64 floating point accurately,
+so <a href=https://twitter.com/landley/status/571883794279493633>the perl
+build breaks</a> in the lfs-bootstrap <a href=control-images>build
+control image</a>. Since this is already screwed up beyond easy
+fixing (other than reverting back to pthreads), I just switched it to
+musl because putting effort in making musl work isn't wasted the way
+it would be in uClibc. (The blocking issue with musl is that the
+old Linux From Scratch 6.8 build is full of packages with #if glibc/
+#else if uClibc staircases that #error out at the end if they can't
+identify your C library. I need to update to a current LFS build
+in which those packages have hopefully been fixed.)</p>
+
+<p>Also updated e2fsprogs build in host-tools.sh to a newer version.
+(It's not used by the build itself, but the dev-environment.sh script
+uses it make writeable scratch space images for qemu native builds.)
+This is because gcc 5.2 defaults to building in c99 mode, which breaks
+the older e2fsprogs, and that may start showing up in people's host
+linux distributions at some point.</p>
+
+<hr /><h2><a name="06-05-2015" />May 6, 2015</h2>
+<p>Aboriginal Linux <a href=downloads/aboriginal-1.4.1.tar.gz>1.4.1</a>
+is out, based on <a href=/hg/aboriginal/shortlog/1756>hg 1756</a>, using
+Linux 3.19.</p>
+
+<p>It's basically just the kernel version upgrade, still a release behind
+but no longer _two_ releases behind. Something broke the x86-64
+lfs-bootstrap build under qemu (floating point rounding error in the perl
+build, which dies with ""Unable to find a perl 2.36242958346314e-310"),
+so I did a chroot version for now.</p>
+</span>
+
+<hr /><h2><a name="11-03-2015" />March 11, 2015</h2>
+<p>Aboriginal Linux <a href=downloads/aboriginal-1.4.0.tar.gz>1.4.0</a>
+is out, based on <a href=/hg/aboriginal/shortlog/1748>hg 1748</a>, using
+Linux 3.18 and toybox 0.5.2.</p>
+
+<p>The simple root filesystem now lives in <a href=http://lkml.iu.edu/hypermail/linux/kernel/1306.3/04204.html>initmpfs</a>,
+with the native compiler in squashfs on /dev/hda and spliced
+into the $PATH at runtime by the init script. (This also provides an example
+of how to do that on other systems.)</p>
+
+<p>You'll need an updated <a href=control-images>build control image</a> to
+automatically build things like Linux From Scratch which want to setup a
+chroot. (The old "should we copy our root filesystem into a chroot before
+modifying it" test was "is / writeable", the new test is "is /home bigger
+than /". The new root filesystem is writeable, but only a few dozen
+megabytes large.)</p>
+
+<p>This release has switched to gzip tarballs instead of bzip2, due to the
+latter slowly becoming obsolete (as evidenced by kernel.org dropping use
+of the file format). The busybox implementation of the gzip compressor
+in insanely slow (slower than bzip2!) but it works and is scheduled for
+replacement by toybox.</p>
+
+<p>Toybox is now handling sed, which means the remaining busybox commands
+which toybox still needs to replace are:</p>
+
+<blockquote><b>
+bunzip2, dd, ftpd, gunzip, pgrep, route, test, wget,
+diff, ftpget, gzip, ping, sh, tr, xzcat,
+bzcat, expr, ftpput, less, pkill, sha512sum, unxz, zcat,
+awk, fdisk, getent, man, ps, tar, vi
+</b></blockquote>
+
+<p>Of these 31 commands, toybox implements three (bunzip2, bzcat, and zcat)
+which busybox can't use due to busybox "tar" requiring then to be built in.
+Toybox' "pending" directory already has at least partial implementations of dd,
+gunzip, pgrep, route, test, diff, ftpget, gzip, ping, sh, tr, xzcat,
+expr, ftpput, pkill, fdisk, ps, and tar. This leaves ftpd, wget, less,
+sha512sum, awk, getent, man, and vi still to be implemented.</p>
+
+<hr /><h2><a name="27-12-2014" />December 27, 2014</h2>
+<p>Aboriginal Linux <a href=downloads/aboriginal-1.3.0.tar.bz2>1.3.0</a>
+is out, based on <a href=/hg/aboriginal/shortlog/1715>hg 1715</a>, using
+Linux 3.17 and toybox 0.5.1.</p>
+
+<p>Patched out the bash function definition exports for that heartburn thing,
+fixed several hiccups in the RECORD_COMMANDS functionality (logging what
+the build actualy does while compiling stuff), broke x86-64 by enabling
+TLS (doesn't quite work reliably, it seems), worked around a busybox bug
+where sed -i on a nonexistent file would create it with random permissions
+(toybox sed, coming soon), wrestled with first nommu platform (not ready yet)...</p>
+
+<p>The usual. Still catching up to the kernel releases.</p>
+
+<hr /><h2><a name="26-09-2014" />September 26, 2014</h2>
+<p>Aboriginal Linux <a href=downloads/aboriginal-1.2.9.tar.bz2>1.2.9</a>
+is out, based on <a href=/hg/aboriginal/shortlog/1688>hg 1688</a>, using
+Linux 3.16 and toybox 0.4.9.</p>
+
+<p>Just the two package upgrades this time, I was still a kernel release
+behind and I didn't upgrade toybox to the release back in June. New version
+of each coming up in a week or so, so another catch-up release.</p>
+
+<p>This also goes back to using busybox's cpio for now, because the linux
+from scratch build uses the as yet unimplemented cpio -s (in toybox source
+control, but not in the 0.4.9 release).</p>
+
+<hr /><h2><a name="09-09-2014" />September 9, 2014</h2>
+<p>Aboriginal Linux <a href=downloads/aboriginal-1.2.8.tar.bz2>1.2.8</a>
+is out, based on <a href=/hg/aboriginal/shortlog/1684>hg 1684</a>, using Linux
+3.15 and a new ccwrap supporting musl-libc.</p>
+
+<p>This is an interim release. An upgrade to linux 3.16 and a new toybox
+release are pending.</p>
+
+<p>The big news is the new option to build musl-libc images with the new config
+knob MUSL=1, although the default is still uClibc for the moment because
+everything needs to be retested thoroughly, and not all targets are supported
+by musl yet.</p>
+
+<p>Making even this much work required a from-scratch rewrite of ccwrap.c
+(which started life as the old uClibc compiler wrapper, before they gave up
+and started buildroot, and is thus full of uClibc-specific assumptions).
+This rewrite caused regressions galore, and just making uClibc work again
+with the new wrapper (for regression testing purposes) took a lot longer
+than expected. It's back to building Linux From Scratch 6.8 with uClibc
+again: next up is to build those same packages with musl. (And upgrade toybox,
+and to the 3.16 kernel...)</p>
+
+<p>The new musl targets are still a bit... wobbly. Static linking against
+musl works, dynamic needs fixing. (It looks like -Bsymbolic-functions
+in the linker isn't always working yet.)</p>
+
+<p>Other bugfixes: patch toybox not to build break when uClibc does something
+stupid with iconv.h. (New toybox release has a proper fix, but that's for next
+time.) SYSIMAGE_TYPE=initramfs is using the right image name
+again. The usr/src directory now has a hello.c (the README said it did,
+but only the C++ and threaded versions were actually there).</p>
+
+<p>The sh4 kernel config is no longer forcing CONFIG_EXPERT (that
+patch should probably go upstream at some point, but after the number
+of years perl removal took it's hard to muster any enthusiasm for engaging
+with linux-kernel. Oh, and the qemu commit that broke signal handling
+in qemu 2.x was qemu git 02c4bdf1d2ca, I pinged qemu-devel about that but in
+case you want to revert locally and rebuild your qemu-system-sh4... It
+works fine for automated native builds either way, but interactive use
+is inconvenient when ctrl-c kills the _emulator_ instead of passing through
+to the shell instance.)</p>
+
+<p>Speaking of qemu upgrades, two kernel patches went away: the sh4 one to
+not touch register 18 (qemu no longer exits over that), and qemu's powerpc
+board can now emulate 4 drives hooked up to the primary disk controller, so we
+don't need to use the cdrom controller to get an hdc, which means native
+builds don't need us to patch Linux's insane scsi device probing ("throw all
+the devices in a big pot and give it a stir, then grab one at random to be
+sda") to align qemu's idea of -hda, -hdb, and -hdc with what Linux hallucinates
+them to be. (Now there's only one controller and the Linux scsi guys are still
+working on screwing up device ordering _within_ a single controller.)</p>
+
+<p>Bobby Bingham sent in a patch to stop yet another hardwired path
+stupidity where gcc was still reaching around ccwrap.c to screw up.
+(Rewriting the path to start with --nostdinc --nostdlib isn't quite _enough_
+to get gcc to stop imagining paths to check; you have to patch out bits
+o the C code that try to grab random stuff, because gnu.)</p>
+
+<p>Also, more/record-commands.sh infrastructure got upgraded to record the
+second half of the host-tools build (rebuilding the wrapper directory each
+time we add something to build/host, but in a way that _doesn't_ rebuild
+the directory if it already exists to avoid interfering with multiple
+parallel builds ala FORK=1 more/build.sh).</p>
+
+<hr /><h2><a name="03-05-2014" />May 3, 2014</h2>
+<p>Aboriginal Linux <a href=downloads/aboriginal-1.2.7.tar.bz2>1.2.7</a>
+is out, based on <a href=/hg/aboriginal/1649>hg 1649</a>, using
+Linux 3.14, and toybox 0.4.8.</p>
+
+<p>Overdue maintenance release to catch up to the kernel. Yes, we skipped a
+kernel release. And I meant to upgrade to busybox 1.22.1
+but thought I already had because the last digit matched. And the musl
+switchover isn't finished yet. Yeah, my todo list still runneth over, and
+most of it's going to toybox.</p>
+
+<p>At least the native stuff is building a new dropbear version. (Remember:
+the NSA didn't put the goto fail exploit in iOS, or the other goto fail
+exploit in gnutls, or the heartbleed bug into openssl, and I can't WAIT to
+see what they didn't do to dropbear.)</p>
+
+<p>Tested under qemu 2.0, and in fact powerpc requires it because /dev/hdc
+moved. (Don't ask me why qemu-system-sh4 kills the emulator
+when you hit ctrl-c, it's been doing that for a while. They left the terminal
+in cooked mode and didn't intercept signals and I should probably poke them
+about that. It's on the todo list...)</p>
+
+<hr /><h2><a name="19-09-2013" />November 19, 2013</h2>
+<p>Aboriginal Linux <a href=downloads/aboriginal-1.2.6.tar.bz2>1.2.6</a>
+is out, based on <a href=/hg/aboriginal/1638>hg 1638</a>, using
+Linux 3.12 and toybox 0.4.7.</p>
+
+<p>There's a bugfix for hosts using patch 2.7.x, and creating sparse disk
+images for the native builds uses the "truncate" command now rather than dd.
+Gunter Roeck fixed a build regression if you want to build ext2 system images,
+and Patrick Lauer made the smoketest timeout configurable (and extended the
+default to 3 minutes).</p>
+
+<p>(I'm way behind on email and distracted by other things. Hoping to get
+more done next release, but meantime here's an update to the new kernel.
+Tested against qemu 1.6.1, the usual suspects seem to work fine so far.)</p>
+
+<hr /><h2><a name="17-09-2013" />September 17, 2013</h2>
+<p>Aboriginal Linux <a href=downloads/aboriginal-1.2.5.tar.bz2>1.2.5</a>
+is out, based on <a href=/hg/aboriginal/shortlog/1627>hg 1627</a> and using Linux for Workgroups
+(3.11) and toybox 0.4.6.</p>
+
+<p>Same versions of the other packages as last time, even busybox and uClibc.
+The musl migration is coming but didn't quite make it this release.
+The busybox to toybox migration continues, with toybox now supplying grep and
+umount. This leaves busybox providing:</p>
+
+<blockquote><p>
+ash awk bunzip2 bzip2 cpio dd diff expr fdisk find ftpd ftpget ftpput 
+gunzip gzip install less lspci man mount pgrep ping pkill ps route sed 
+sh sha512sum tar test tr unxz vi wget xzcat zcat
+</p></blockquote>
+
+<p>(Several of which are already in the toybox "pending" directory defaulting
+to "n" while they await review and cleanup.)</p>
+
+<p>If you use qemu 1.6.0, note that mips and sparc networking are broken.
+1.5.0 works. No, I don't know what the qemu guys are using for regression
+testing either.</p.
+
+<hr /><h2><a name="07-07-2013" />July 7, 2013</h2>
+<p>[UPDATE: missed checking in a file, hence the .1 release. Old
+broken tarball's been moved to <a href=downloads/old>old</a>.]</p>
+
+<p>Aboriginal Linux <a href=downloads/aboriginal-1.2.4.1.tar.bz2>1.2.4.1</a>
+is based on <a href=/hg/aboriginal/ref/1612>hg commit 1612</a>, using
+linux 3.10, busybox 1.21.1, and toybox 0.4.5.</p>
+
+<p>Took a while to work around QEMU's <a href=http://lists.nongnu.org/archive/html/qemu-devel/2013-06/msg05325.html>issues with arm</a>, and sparc, and
+sh4, but it's got workarounds for all of them now. That means x86, x86_64,
+mips, mipsel, sparc, sh4, powerpc, and arm all work. (And sparc can actually
+do native builds now, under qemu 1.5.)</p>
+
+<p>The mips64 target is bit-rotted (I think qemu changed out from under it
+somewhere between 1.0 and 1.2), and m68k support in qemu still isn't finished.
+Todo items.</p>
+
+<p>Meanwhile, toybox replaced 4 more commands in the build (mv, stat, ifconfig,
+and split). Upcoming work: I've done part of the architecture to put
+simple-root-filesystem in initramfs (or <a href=http://lkml.indiana.edu/hypermail/linux/kernel/1306.3/04204.html>initmpfs</a>)
+always and splice the native-compiler in at runtime from
+/dev/hda with symlinks, that might be ready next release. And I'm chipping
+away at the switch to musl-libc.org (basically a complete rewrite of
+sources/toys/ccwrap.c to _not_ assume uClibc).</p>
+
+<p>Binaries in the <a href=bin>usual</a> <a href=downloads/binaries>places</a>.</p>
+
+<hr /><h2><a name="02-04-2013" />April 2, 2013</h2>
+<p>A long over due release:
+<a href=downloads/aboriginal-1.2.3.tar.bz2>1.2.3</a> is based on
+<a href=/hg/aboriginal/ref/1589>hg commit 1589</a>, using busybox 1.21.0,
+toybox 0.4.4, and linux 3.8.</p>
+
+<p>The delay is because qemu 1.3.0 and 1.4.0 both have a
+<a href=https://bugs.launchpad.net/qemu/+bug/1127369>subtle bug</a>
+causing intermittent instability in the native build on all targets,
+which I blamed on everything from toybox to the kernel until working
+out that if I went back _two_ releases to qemu 1.2.0, Linux From Scratch built
+reliably on the various targets. (A bug that
+goes away when you try again is always a pain to track down, you're
+never quite sure whether you've fixed it or just didn't see it this
+time...)</p>
+
+<p>The <a href=about.html>about page</a> got a major facelift, if you haven't
+noticed you might want to give a look.</p>
+
+<hr /><h2><a name="16-12-2012" />December 16, 2012</h2>
+<p>Another kernel, another release:
+<a href=downloads/aboriginal-1.2.2.tar.bz2>1.2.2</a> is out based on
+<a href=/hg/aboriginal/rev/1576>hg commit 1576</a>. It's got Linux 3.7
+and toybox 0.4.2.</p>
+
+<p>The native-built binaries for dropbear and strace and such are back.
+(Last time around native building couldn't upload binaries to the host
+because the launcher script was calling busybox netcat to host ftpd,
+but toybox is providing netcat now. I punted because we were close to
+the next kernel release and I wanted to catch up.)</p>
+
+<p>Other than the package upgrades, the rest is pretty minor.
+The <a href=screenshots>screenshots</a> directory is back. Undid some
+minor bit-rot in the i686-virtio target, and a tweak to powerpc so musl can
+build natively on it. (Haven't switched over any targets to build musl on
+the host yet, still chipping away at a ccwrap rewrite.) The
+chroot-splice.sh script is now doing its bind mounts read only.</p>
+
+<hr /><h2><a name="15-11-2012" />November 15, 2012</h2>
+<p>The <a href=downloads/aboriginal-1.2.1.tar.bz2>1.2.1 release</a> is out,
+based on <a href=/hg/aboriginal/rev/1560>hg commit 1560</a>, with linux 3.6
+(plus some ext4 bugfixes), busybox 1.20.2, and a uClibc config tweak so mdadm
+can auto-scan arrays. Zlib is now at 1.2.7 (used by squashfs in
+host-tools). Toybox and binutils also got updates, as described below.</p>
+
+<p>Toybox was upgraded to 0.4.1 and the build is now using it by default.
+The goal is to eventually replace busybox with <a href=http://landley.net/toybox>toybox</a>, and each release
+from here on is likely to switch over a few more commands. The current
+list is:</p>
+
+<h3>Busybox:</h3>
+<blockquote>
+<p>ash awk bunzip2 bzip2 cp cpio cut dd diff dnsdomainname egrep expr
+fgrep find ftpd ftpget ftpput grep gunzip gzip ifconfig init install less
+losetup lspci man mount mv pgrep ping pkill ps readlink rm route sed sh split
+stat tar test time touch tr umount unxz vi wget xzcat zcat</p>
+</blockquote>
+
+<h3>Toybox:</h3>
+<blockquote><p>
+basename bzcat cal cat catv chgrp chmod chown chroot chvt cksum clear cmp comm
+count date df dirname dmesg dos2unix du echo env false free head help hostname
+id insmod kill killall link ln login logname ls lsmod md5sum mkdir mkfifo mknod
+mkswap mktemp modinfo mountpoint nc netcat nice nohup od oneit passwd patch
+pidof printenv pwd realpath rmdir rmmod seq setsid sha1sum sleep sort swapoff
+swapon switch_root sync tac tail taskset tee true truncate tty uname
+uniq unix2dos unlink unshare uptime usleep vconfig vmstat w wc which whoami
+xargs yes
+<p></blockquote>
+
+<p><a href=http://landley.net/hg/aboriginal/rev/1545>Binutils has been
+upgraded</a> to the last GPLv2 version in the git repo
+(commit 397a64b3, between 2.17 and 2.18), which has the -Bsymbolic-functions
+command required to build
+<a href=http://www.musl-libc.org/faq.html>the musl C library</a>.
+(This version of binutils also claims to have ARMv7 support, but we're not
+using that yet.)</p>
+
+<p>The goal for next release is to replace uClibc with musl for the
+architectures musl currently supports, and to help the musl developers add
+support for the remaining architectures to eventually replace uClibc as
+a cross-compiled package. (New build control images to natively build
+uClibc and glibc chroot environments on an arbitrary target are on the
+todo list. Supporting a libc does not require cross compiling it.)</p>
+
+<p>On the infrastructure side of things, USE_ALT went away. The new way to
+build alternate versions of packages is to just provide a directory of
+extracted source in the "packages" directory, in which case the build will
+use it verbatim (applying patches is your problem).</p>
+
+<p>This means the following works:</p>
+
+<blockquote><pre>
+more/clean.sh
+git clone git://busybox.net/busybox packages/busybox
+./build.sh i686
+</pre></blockquote>
+
+<p>If you want to go back to building the tarball versions, either set
+IGNORE_REPOS=busybox (or all), or "rm -rf packages/busybox".</p>
+
+<hr />
+<h2><a name="22-08-2012" />August 22, 2012</h2>
+<p>After far too long the
+<a href=downloads/aboriginal-1.2.0.tar.bz2>1.2.0 release</a> is out, based
+on <a href=/hg/aboriginal/rev/1535>hg commit 1535</a>.
+Package upgrades are Linux 3.5, uClibc-0.9.33.2, busybox 1.20.0,
+toybox is back in at version 0.4.0, and most targets are finally
+using NPTL instead of pthreads.</p>
+
+<p>Several "how did that ever work" bugs in the build scripts got fixed
+(commits 1513 through 1518, for example). Several other "only occurs on
+a specific distro" bugs also got fixed (a Gentoo one in 1518, a Fedora
+one in 1532). The longstanding uClibc++ build break where it complained
+".config is a directory" was squashed by 1533.</p>
+
+<p>The new development was mostly prep work for toybox integration and fixing
+bit-rot in record-commands.sh (used to test toybox). There was also a lot of
+dealing with regressions introduced by package upgrades. (Upgrading uClibc
+broke stuff. Upgrading busybox broke stuff. Upgrading the kernel
+broke stuff all three times.)</p>
+
+<p>Busybox is still doing most of the heavy lifting both during the host
+build and on the target, but the baseconfig-busybox file is now sorted with
+toybox-supplied functionality at the end, allowing toybox to replace
+busybox code incrementally as commands become ready.</p>
+
+<p>In future versions I'm looking at migrating this project from busybox/uClibc
+to <a href="http://landley.net/toybox">toybox</a>/<a href=http://www.etalabs.net/musl>musl</a>, producing something compatible with Android's "no GPL in
+userspace". I'm also looking at replacement toolchains, since it may take
+me a while to clear time to work on <a href=http://landley.net/qcc>qcc</a>.
+If you're curious about all that, ask on the mailing list.</p>
+
+<hr />
+<h2><a name="31-01-2012" />January 31, 2012</h2>
+<p>The <downloads/aboriginal-1.1.1.tar.bz2>1.1.1 release</a> is out, based on
+<a href=/hg/aboriginal/rev/1496>hg commit 1496</a>.</p>
+
+<p>The new release upgrades packages (Linux 3.2, uClibc 0.9.32.1,
+busybox 1.19.3, e2fsprogs 1.41.14), and
+<a href=control-images>natively compiles</a> Linux From Scratch 6.8
+(which involved adding mkostemp() to uClibc, for util-linux).<p>
+
+<p>The x86 targets now require QEMU 1.0 (because the "qemu" binary got renamed
+"qemu-system-i386"), but the mips targets require the previous
+release due to a regression in the network card emulation (fixed in the source
+repo, but no 1.0.1 is out yet).</p>
+
+<p>On the documentation front, the 2008 "what are we doing and why"
+presentation is now available in
+<a href=https://speakerdeck.com/landley/developing-for-non-x86-targets-using-qemu>HTML format</a>, probably worth reading if you haven't yet.
+The FAQ also grew some <a href=FAQ.html#debug_test>new</a>
+<a href=FAQ.html#new_syscalls>entries</a> (showing how to use more/test.sh
+to rebuild uClibc without redoing a while toolchain, and why powerpc isn't
+as backward compatable as you'd expect).</p>
+
+<p>The long-broken sparc target now supports basic dynamic linking (although
+dynamically linked threading and C++ are still broken).</p>
+
+<p>Busybox is back to using a specified configuration instead of just switching
+on everything. (Busybox's new ubifs commands won't build on Ubuntu 11.10,
+and it's hard to see the command count grow past 300 and keep going without
+humming the "Katamari Damacy" theme.)  If we missed a command let
+us know, and you can of course still build busybox defconfig natively.
+(Eventually, we'll start using <a href=/toybox>toybox</a> again,
+which has been relaunched as a BSD-licensed project.)</p>
+
+<p>The build.sh wrapper can now rebuild from any stage, just specify the
+starting point on the command line after the architecture, for example
+"./build.sh i686 simple-root-filesystem" won't rebuild the cross or native
+compilers, or the kernel, but will rebuild the root-filesystem, root-image,
+and system-image stages.</p>
+
+<p>The more/test.sh script now understands "host" as an architecture, for
+testing host-tools builds.</p>
+
+<p>Rename the USE_UNSTABLE variable to USE_ALT since it already uses alt-
+prefixes on the packages and patches.  The repository's
+build/patches directory no longer contains "alt-*.patch" symlinks, instead
+a new more/alt-patches.sh script can set them up locally for a given package.</p>
+
+<p>Add record-commands wrapper to target image, "record-commands /mnt/init" runs
+/mnt/init and logs commands to "/tmp/record-commands-log.txt".  This way
+you can see what commands target builds are running.</p>
+
+<p>The CPUS calculation, for automatically parallelizing the build on SMP
+systems, now detects hyper-threading and won't stress hyper-threaded systems
+quite so hard as full SMP.  The target's sbin/init.sh also has basic CPUS
+detection code now too, since KVM or a chroot can have more than one. (This only
+matters if CPUS isn't set by something else, such as the dev-environment.sh
+wrapper script's distcc setup.)</p>
+
+<p>Several bugfixes, due to insufficient regression testing of previous releases:
+SYSIMAGE_TYPE=ext2 SYSIMAGE_HDA_MEGS was broken, more/smoketest-all.sh was
+looking for static-tools output in the old place, and more/record-command.sh
+only worked with NO_SANITIZE_ENVIRONMENT=1.  The target root filesystem's
+init script wasn't detecting a failure to mount devtmpfs (such as when used
+to setup a chroot on a kernel that didn't support it), and falling back to
+mdev -s.  And ldd was spewing debug messages.  All fixed now.</p>
+
+<hr />
+<h2><a name="10-02-2011" />October 2, 2011</h2>
+<a href=downloads/aboriginal-1.1.0.tar.bz2>Aboriginal Linux 1.1.0</a> is out,
+based on <a href=/hg/aboriginal/rev/1452>hg commit 1452</a>.</p>
+
+<p>The big news is that Linux From Scratch 6.7 now builds to completion
+under 11 targets, via the <a href=control-images/downloads/binaries/lfs-bootstrap.hdc>lfs-bootstrap</a> <a href=control-images>build control
+image</a>. The remaining platforms all show target-specific issues
+(often just insufficient board support in QEMU) rather than generic
+problems with the build environment. The big bugfix allowing this to happen
+was the m4 build hang (which was a bash bug).</p>
+
+<p>The only upgraded package was BusyBox 1.19.2, but there were several
+performance tweaks and bugfixes, such as:</p>
+
+<ul>
+<li><p>The more/chroot-splice.sh script sets up a chroot using the
+build/root-filesystem-$TARGET directory and a build control image,
+for quickly testing build control images natively (generally using the
+i686 or x86-64 root filesystems).</p></li>
+
+<li><p>The more/buildall-native.sh timeout value is now configurable via the
+TIMEOUT=seconds environment variable (defaulting to 60).</p></li>
+
+<li><p>Tuned the
+more/buildall.sh script in FORK=1 mode to take available memory into account
+determinging CPUS (so it doesn't overload the build machine so easily).</p></li>
+
+<li><p>When
+dev-environment.sh enables distcc it sets CPUS=3 because several current QEMU
+boards support a maximum of 256 megs physical memory.</p></li>
+
+<li><p>The ldd and ldconfig binaries in the cross compilers were target binaries
+instead of host binaries: that's fixed now.</p></li>
+
+<li><p>The virtio targets should now work with dev-environment.sh</p></li>
+<li><p>The test script more/test.sh should no longer delete the output directory
+(build/$STAGE_NAME-$TARGET) at the start of each test, allowing test rebuilds
+of things like uClibc which have target prerequisites.</p></li>
+
+<li><p>The common kernel config now uses the ext4 driver for both ext3 and ext2
+filesystems.</p></li>
+</ul>
+
+<hr />
+<h2><a name="08-22-2011" />August 22, 2011</h2>
+<p>The
+<a href=downloads/aboriginal-1.0.3.tar.bz2>1.0.3 release</a> is out,
+based on hg commit
+<a href=http://landley.net/hg/aboriginal/143>1430</a>.
+This release includes the long-awaited Linux 3.0 and uClibc 0.9.32
+releases, along with BusyBox 1.19.0 (and Dropbear 0.53.1 in the static
+tools).</p>
+
+<p>This release is still using pthreads, but NTPL support is a goal for next
+release.  (It's just a uClibc config change.)</p>
+
+<p>The other big news is that the control-images got split out to
+<a href=http://landley.net/hg/control-images>their own repository</a>,
+with <a href=control-images>their own web page</a>.</p>
+
+<p>The Aboriginal Linux project is feature complete ever since the 1.0
+release, and other than adding support for more targets the only major
+todo items left are a big documentation update, more automation via cron job,
+and enabling NPTL support.  (This release is still using pthreads, but NPTL
+support is a goal for next release.  It's just a uClibc config change at
+this point, 0.9.32 has support but needs more tweaking and testing.)</p>
+Since control images are not feature complete (and there's really no obvious
+limit to what you can do with them), they deserve to be their own project.</p>
+
+<p>Other changes:</p>
+
+<ul>
+<li>
+<p>The default kernel configuration replaces includes v9fs (as used in virtfs or
+the diod server) instead of the older NFS.  In addition Alessio Igor Bogani
+contributed i686-virtio and powerpc-virtio targets, using the new virtio
+infrastructure in KVM to provide efficient emulation-friendly virtual
+devices.</p>
+</li>
+
+<li>
+<p>Several random bugfixes and cleanups (BINARY_PACKAGE_TARBALLS should
+work again, the root filesystems now use devtmpfs instead of mdev).</p>
+</li>
+
+<li>
+<p>Major cleanup on sources/targets, now most entries are a single file.
+The hold hw- prefix stuff went away, now the ones that are files are built
+by more/buildall.sh and the ones that are directories are the derived stuff
+that only gets built if you specify it explicitly.  (read_arch_dir is
+now called load_target, and the new base_architecture function reads in
+a base architecture that this one derives from.)</p>
+</li>
+
+<li>
+<p>The new more/smoketest-report.sh produces CSV output with more info.
+(I need to follow this up with a nightly cron job and a pretty
+web page generator.)<p>
+</li>
+</ul>
+
+<hr />
+<h2><a name="06-14-2011" />June 14, 2011</h2>
+
+<p>The long overdue <a href=downloads/aboriginal-1.0.2.tar.bz2>1.0.2
+release</a> is out, based on hg commit
+<a href=http://landley.net/hg/aboriginal/1375>1375</a>.</p>
+
+<p>This release includes several bugfixes, package version upgrades for Linux
+(2.6.39), BusyBox (1.18.4), and Squashfs (4.2), and some minor user interface
+tweaks.  (Still using uClibc 0.9.31, NTPL is bumped to next release.)</p>
+
+<h2>Targets</h2>
+
+<p>This moves forward three(!) kernel releases (sorry), and although several
+targets bit-rotted along the way (notably armv6l, sh4, and mips) they're all
+fixed now, including some that didn't work last release.</p>
+
+<p>QEMU still doesn't emulate the big endian arm or
+m68k targets, powerpc-440fp needs to be switched to QEMU's -M bamboo board
+emulation now that it can actually emulate a 440, and mips64 and sparc boot
+to a shell prompt but contain bugs in either uClibc or the kernel that make
+them unreliable.</p>
+
+<p>All the other targets can at least natively compile and run
+"hello world", and the arm, x86, mips, and powerpc targets built
+static versions of dropbear and strace (available in the
+<a href=downloads/binaries/extras>extras directory</a>, or by using
+native-build.sh with the static-tools.hdc <a href=downloads/binaries/control-images>control image</a>).</p>
+
+<h2>Bugfixes</h2>
+
+<ul>
+<li>Commit <a href=http://landley.net/hg/aboriginal/rev/1323>1323</a> fixes a
+bad path in the static-tools build)</li>
+<li>Commit <a href=http://landley.net/hg/aboriginal/rev/1327>1327</a> fixes
+ccwrap to understand -xc</li>
+<li>Commit <a href=http://landley.net/hg/aboriginal/rev/1328>1328</a> puts
+libnsl back</li>
+<li>Commit <a href=http://landley.net/hg/aboriginal/rev/1332>1332</a> makes
+#!/bin/sh point to bash instead of hush</li>
+<li>Commit <a href=http://landley.net/hg/aboriginal/rev/1335>1335</a> makes
+download.sh check if sha1sum is installed on the host (so it can fail with a
+better error message)</li>
+<li>Commit <a href=http://landley.net/hg/aboriginal/rev/1344>1344</a>
+serializes scratch disk image creation during parallel builds of all targets (so the
+disk I/O storm doesn't trigger timeouts during native builds of dropbear
+and strace).</li>
+<li>Commit <a href=http://landley.net/hg/aboriginal/rev/1364>1364</a> upgrades
+busybox to fix a wget hang.</li>
+</ul>
+
+<h2>New Control Knobs</h2>
+
+<p>Two new build stages <b>root-image.sh</b> and <b>linux-kernel.sh</b>
+got split out from system-image.sh.  The first
+makes a filesystem image from a root filesystem directory,
+the second builds a kernel.  This leaves system-image.sh to
+create the qemu launch scripts and bundle it all up into a tarball.</p>
+
+<p>The advantage of the split is you can repackage the root filesystem without rebuilding
+your kernel.  (Unless you chose SYSIMAGE_TYPE=initramfs, where the output
+of root-image.sh is a prerequisite to linux-kernel.sh.)  The downside is
+you have to remember to call the other scripts before calling system-image.sh
+in order for your changes to wind up in the system image.  (If you delete
+the tarball you modified out of the build directory, ./build.sh should still work out
+what it needs to rebuild.)</p>
+
+<p><b>Environment variables:</b> SYSIMAGE_HDA_MEGS now defaults to 2 gigabytes
+(only currently matters for SYSIMAGE_TYPE=ext2).  The more/buildall.sh script
+now pays attention to NO_CLEAN and BUILD_NATIVE_ONLY.  As always, the
+environment variables are documented in the config file at
+the top of the source tree, and leaving them blank should provide sane
+default behavior.</p>
+
+<p>Two new scripts in the system image's /sbin directory are:</p>
+
+<ul>
+<li><p><b>setup-chroot /home/mydir [COMMAND...]</b></p>
+
+<p>This script copies the system-image's (generally read-only) root filesystem
+into a writeable subdirectory, copies the other mounts ("mount --bind /proc
+/home/mydir/proc" and so on), and chroots into the resulting directory to
+run the rest of the command line.  (If no commands are specified, chroot
+runs /bin/sh for an interactive shell prompt.)</p>
+
+<p>When the chroot exits, the script cleans up all the mount points but
+leaves the directory contents.</p>
+
+<p>This lets you use a read-only system image to build and install software
+into a chroot.</p>
+
+<p>If the target directory already exists, the script will just redo the
+--bind mounts, and won't copy files.</p>
+</li>
+
+<li><p><b>zap-chroot</b> - The cleanup script to remove all mounts under a
+specified subdirectory.</p></li>
+</ul>
+
+<p>In the system images, root's home directory is now /home/root so it's
+in known writeable space you can stick a .ssh directory in for dropbear.</p>
+
+<hr />
+<h2><a name="02-13-2011" />February 13, 2011</h2>
+<p>The repository is back up, and tweaked so it generates correct URLs without
+superfluous cgi names in them.</p>
+
+<p>I see from the release RSS feed (go to repository viewer, then click "tags"
+and then "rss") that we're due for the next release in the first half of March.</p>
+
+<p>I'd better get on that.  (I'm aiming for a version of uClibc with NPTL
+working on at least x86/64, arm, mips, and powerpc.  There's some work to do
+between now and then...)</p>
+
+<hr />
+<h2><a name="02-08-2011" />February 8, 2011</h2>
+<p>The website was down again while we switched web hosts, but we're back up
+on dreamhost now, which has buckets more bandwidth and lets us have a
+<a href=http://lists.landley.net/listinfo.cgi/aboriginal-landley.net>mailing
+list</a> again.</p>
+
+<p>I still need to figure out how to enable mercurial on the new host, so
+the repository is down at the moment, but I should get that fixed up
+soon.</p>
+
+<hr>
+<h2><a name="01-02-2011" />January 2, 2011</h2>
+<p>It's a month late, but
+<a href=downloads/aboriginal-1.0.1.tar.bz2>Aboriginal Linux 1.0.1</a> is
+finally out,
+based on <a href=/hg/aboriginal/shortlog/1318>hg commit
+1318</a>, using Linux 2.6.36, uClibc 0.9.31, and BusyBox 1.18.0.</p>
+
+<b><h3>Automated native build control images</h3></b>
+
+<p>The big news this time is the native build
+<a href=downloads/binaries/control-images>control images</a>, especially
+the one to build Linux From Scratch 6.7.</p>
+
+<p>These control images drive the automated build infrastructure (first
+introduced back around release 0.9.8 and substantially improved since then).
+They allow you to fire up a system image under QEMU and run a completely
+automated native build.</p>
+
+<p>To use a control image, cd into a system-image
+directory and run "./native-build.sh path/to/control-image.hdc".  The
+result should wind up in the "uploads" subdirectory.  To build control images
+from source, run "more/build-control-images.sh" and look in
+"build/control-images" afterwards.  The build scripts live in
+"sources/control-images".</p>
+
+<p>The <a href=downloads/binaries/control-images/lfs-bootstrap.hdc>lfs-bootstrap.hdc</a>
+image builds most of <a href=http://www.linuxfromscratch.org/lfs/view/6.7/>Linux From Scratch 6.7</a>.
+It doesn't replace the toolchain or C library, and stubs out
+internationalization support, but builds everything else (about 50 packages
+total).  This build runs to completion reliably on i686, x86_64, and
+armv5l.  Making it do that smoked out a lot of subtle bugs and configuration
+issues in the build environment, resulting in much improved system images.
+This LFS build sometimes finishes on mips and powerpc, and
+sometimes randomly dies for various asynchronous reasons that seem like
+something wrong in uClibc's pthreads locking code, although that's just
+a guess.  (Since the uClibc developers (finally!) shipped a 0.9.32-rc1 with NPTL
+support on all targets, I expect the fix will involve upgrading.  Part of the
+delay in this release was me playing around with that, but I'm releasing a
+checkpoint of the existing code before switching over to the new threading
+implementation.)</p>
+
+<b><h3>What else is new?</h3></b>
+
+<p>I fixed the static "dropbear" binary to call "ssh" out of $PATH instead of
+expecting dbclient at a fixed location, fixed the guest account's
+/etc/passwd and /etc/group entries so dropbear can use it, and added a /root
+directory to the system images so you can add a .ssh directory to it to make
+dropbear happy (possibly by mounting a tmpfs on it first).</p>
+
+<p>Build infrastructure tweaks: sources/download_functions.sh is now its own
+file, and various fixes (only apply patches that end in ".patch") .  The root
+filesystem's sbin/init.sh now mounts /dev/pts.  Bugfix for
+SIMPLE_ROOT_OVERLAY, and multiple bugfixes in ccwrap.</p>
+
+<p>Lots of tweaks to the native-build stuff.  Redo control image generation,
+add bootstrap-skeleton with common code for bootstrapping distros (it has
+its own README), and rebase
+the half-finished gentoo-bootstrap on top of that.  Upgrade
+"bisectinate" debugging script to take its test from the command line.</p>
+
+<p>Several tweaks to uClibc to build LFS packages, and tweaks to the
+base kernel config to support NFSv3 and devtmpfs.</p>
+
+<p>The new more/chroot-splice.sh script combines a root filesystem directory
+and a control image directory into a combined version you can chroot into
+and run a build from.  (It looks for each in the location the build puts
+them, build/root-filesystem-$ARCH and build/control-images/$IMAGENAME
+respectively.)  The new more/zapchroot.sh script unmounts everything under a
+directory, which is useful when playing with a root-filesystem via chroot.</p>
+
+<b><h3>Target support</h3></b>
+
+<p>I've fallen a bit behind on regression testing the targets, and hope to
+catch up next release.  (Upgrading the kernel and QEMU breaks things that used
+to work.)</p>
+
+<p>The i486, i586, i686, x86_64, powerpc, armv4l, armv4tl, and armv5l targets
+all work (for me) without qualification.</p>
+
+<p>Last I checked, qemu still didn't support armv4eb or m68k, so I can't
+test those, but they build.  (The kernel .config is almost certainly wrong
+for any target you'll actually be able to run them on, but the toolchain
+and root filesystem are probably ok.)</p>
+
+<p>Updating the kernel broke armv6l: attempting to boot it under qemu exits
+with an "unimplemented cp15 register write" error.  I'm not sure whether this is
+a kernel bug, a qemu bug the upgrade triggered, or some kind of
+misconfiguration.  The proper fix is probably to look at the other arm boards
+QEMU can emulate for newer processors, and switch to one of those.</p>
+
+<p>QEMU had a MIPS bug that prevented the system images from working for a
+version or two (such as the one in Ubuntu 10.04).  It's fixed in current
+qemu-git, and isn't actually a problem with the mips, mipsel, or mips64 system
+images, they work fine under older or newer versions of qemu.</p>
+
+<p>Sparc broke again (failure to launch init), and Oracle's patent trolling
+makes it harder than ever to care.  It's on the todo list...</p>
+
+<p>The only system image that doesn't current compile is sh4.  (As noted in the
+0.9.11 release notes, the sh4 maintainer broke it on purpose, which also makes
+it hard for me to care much about that target.)</p>
+
+<p>The problem with sh4 is once again the kernel, this time a build break:</p>
+<blockquote>
+arch/sh/kernel/process_32.c:303: error: conflicting types for 'sys_execve'<br />
+/home/landley/play/two/build/temp-sh4/linux/arch/sh/include/asm/syscalls_32.h:24: error: previous declaration of 'sys_execve' was here
+</blockquote>
+
+<p>And even if I bothered to fix that, another change in the sh4 code changed
+the serial devices so QEMU's serial console no longer produces output.  (Note
+that the sh4 test image on qemu.org uses a 2.6.29 kernel, which may be the last
+time the thing actually worked for anybody who isn't in a financial relationship
+with Renesas.)</p>
+
+<p>Last I checked, QEMU still didn't support armv4eb or m68k, so I can't
+test those.  I have patches to make m68k work on aranym and armv6eb work on
+actual big endian arm hardware, but haven't merged them yet.</p>
+</span>
+
+<hr>
+<h2><a name="11-03-2010" />November 3, 2010</h2>
+<p>My apologies for the lack of notice, the impactlinux.com domain unexpectedly
+went away saturday.  The landley.net mirror is still up, and is
+becoming the main site again for the moment despite its' limited bandwidth.
+I'll see if I can recover the mailing list subscriptions, but I wouldn't
+count on it.</p>
+
+<p>Still working on the next release, currently scheduled for around the start
+of December.  Until we get a new mailing list, the
+<a href=/hg/aboriginal>source control log</a> shows what's changing, and
+you can always email me directly, rob at landley dot net.</p>
+
+<hr>
+<h2><a name="09-05-2010" />September 5, 2010</h2>
+<p>There's an old saying, "eventually you need to shoot the
+engineers and go into production".  Aboriginal Linux can now bootstrap a
+native development environment on an arbitrary target, and build packages
+under the result.  There's always more to do, but it does what it set
+out to do.  And thus:</p>
+
+<p><a href=downloads/aboriginal-1.0.0.tar.bz2>Aboriginal Linux 1.0</a> is out,
+based on <a href=/hg/aboriginal/shortlog/1238>hg commit
+1238</a>, using Linux 2.6.35, uClibc 0.9.31, and BusyBox 1.17.2.</p>
+
+<p>Yes, it's been over five months since the last release.  I didn't want to
+ship yet another intermediate release before doing 1.0, but I was trying
+to run out of todo items before shipping.  (Yeah, I should know better.
+Sorry for the delay.)</p>
+
+<p>The following are release notes, not proper documentation.  Proper
+documentation (including an introduction to the whole thing) is the next
+big TODO item.</p>
+
+<b><h3>Targets</h3></b>
+
+<p>The arm, mips, powerpc, and x86 targets all work.  Sparc works statically
+linked, but dynamic linking is still broken.  Khem Raj fixed mips64 dynamic
+linking, but the native compiler still doesn't work.  The m68k target builds
+again, although QEMU still doesn't emulate it.  The sh4 target and big endian
+arm are are still broken.</p>
+
+<p>The snapshots page needs updating.  The documentation needs updating.</p>
+
+<b><h3>System image updates</h3></b>
+
+<p>The native-build.sh script moved into each system image.  This means you
+can now download a system image tarball and a control image, then run a
+native build without any dependencies on the Aboriginal Linux build scripts.
+This script is a wrapper around dev-environment.sh which takes one argument,
+the name of the control image file.</p>
+
+<p>The build only puts dev-environment.sh and run-from-build.sh into a
+system image when the system image includes native development tools.</p>
+
+<b><h3>Control Images</h3></b>
+
+<p>This release adds prebuilt binary build control images, generated
+by more/build-control-images.sh and shipped in the
+<a href=downloads/binaries/control-images>control-images</a> directory.
+These are squashfs filesystems containing source code and an init script to
+build it and upload it to the host (using the $FTP_SERVER and $FTP_PORT
+variables, set by native-build.sh).</p>
+
+<p>If these
+images are loaded into /dev/hdc of the emulated system, the system image's
+init script will mount that on /mnt and run /mnt/init instead of a shell
+prompt, so the build is completely automated.</p>
+
+<p>Control images are provided to build hello world, build static dropbear
+and strace binaries, run the busybox test suite, and an in-progress script
+to bootstrapping Gentoo Stage 1 does about the first 2/3 of the job.</p>
+
+<b><h3>Root filesystem improvements</h3></b>
+
+<p>The root filesystem broke into two stages: simple-root-filesystem just
+contains a simple "defconfig busybox plus uClibc" system, enough to boot
+to a shell prompt.  The native-compiler stage is like cross-compiler only
+unprefixed, built to run on the target, and including make, bash, and
+distcc.  The root-filesystem stage combines the two into a single root
+filesystem with native development tools.</p>
+
+<p>If the root filesystem is mounted read only, the init script will now
+mount a tmpfs on /home if there's no /dev/hdb to provide writeable scratch
+space.  Chroot environments should now use Google's 8.8.8.8 nameserver
+by default.  The distcc binaries moved out of /bin to the /distcc directory.</p>
+
+<p>The "oneit" binary became a standalone program, and uses the / directory
+as PID 1's working directory, allowing you to umount /home if necessary.
+Toybox's "patch" command went upstream into busybox, and busybox's defconfig
+once again supports netcat server mode, so toybox was removed.  We're now
+using a defconfig busybox, so configuring it properly is their problem.</p>
+
+<b><h3>Build scripts </h3></b>
+
+<p>The kernel configuration got collated to sources/baseconfig-linux (just
+like baseconfig-uClibc), and the various packages were migrated to use
+that.  The kernel config is now the baseconfig plus the settings
+entry $LINUX_CONFIG.  You can still supply a miniconfig-linux file to
+override this, and some architectures still do that.  The ones that have
+been migrated to use a shared baseconfig are a lot more regular now,
+and the differences between architectures broken out and isolated.</p>
+
+<p>The build stages were broken up to be more granular.  The root-filesystem.sh
+stage now merely collates the output of two previous stages:
+simple-root-filesystem.sh (which produces just enough of a root filesystem
+to boot to a shell prompt, based on uClibc and busybox plus a few init scripts
+and config files), and native-compiler.sh (a portable native toolchain).</p>
+
+<p>The system-image.sh stage now generates the dev-environment.sh script.
+It only puts dev-environment.sh and native-build.sh scripts in the tarball
+when NO_NATIVE_COMPILER is blank (and thus the build includes native
+development tools), or if root-filesystem isn't available in which case
+it'll automatically use simple-root-filesystem.</p>
+
+<p>Several more package builds were moved to sources/sections.</p>
+
+<p>The new "more" subdirectory collects together all the user-runnable
+scripts that aren't build stages.  (Many of these were previously in
+sources/more.)  New scripts in this directory include:</p>
+
+<ul>
+<li>Scripts to run newly built system images out of the build directory
+("run-emulator-from-build.sh $ARCH", "dev-environment-from-build.sh $ARCH",
+and "native-build-from-build.sh")</li>
+
+<li>test.sh - Wrapper script to run commands in the build environment, with
+read_arch_dir loaded.  Useful for things like
+"STAGE_NAME=simple-cross-compiler more/test.sh sparc build_stage uClibc",
+or to dump the build context's environment variables ala "more/test.sh env"</li>
+
+<li>timeout.sh $SECONDS command... - Wrapper to run a child process and
+kill it if it doesn't produce a line of output for $SECONDS seconds.</li>
+
+<li>build-control-images.sh - build all control images from sources/native-builds.</li>
+
+<li>for-each-target.sh - iterate through every defined target architecture
+and run a command.</li>
+</ul>
+
+<b><h3>Website</h3></b>
+
+<p>A new cron job is populating the
+<a href=downloads/binaries/snapshots>snapshots</a> directory.  Currently only
+the stable versions, but the unstable versions should wander back in
+eventually.  (When the bisectinate and migrate-kernel scripts catch up to
+what they need to do to properly test unstable packages.)</p>
+
+<p>More documentation: The "about" page got redone, and the FAQ was fluffed
+out with a new debugging section.  Michael S. Zick wrote up mips docs for the
+architecture page, and the build scripts grew even more comments.</p>
+
+<b><h3>General Infrastructure</h3></b>
+
+<p>The control image generation was upgraded so each control image
+source can have its own patch directory and file directory.  (This needs
+more work.)</p>
+
+<p>Environment variable sanitization: the sanitize_environment function
+unsets any environment variable it doesn't recognize, either from a whitelist
+or from config.  Clearing all unrecognized environment variables insulates
+the build from some of the strange environments out there.  To disable this
+behavior, export NO_SANITIZE_ENVIRONMENT=1.</p>
+
+<p>New config variables:</p>
+
+<ul>
+<li>STATIC_CC_HOST became CROSS_HOST_ARCH, set that and second stage cross
+compiler gets built.</li>
+
+<li>The new ALLOW_PATCH_FAILURE=1 variable continues despite a patch failing to
+apply.</li>
+
+<li>NO_HOST_TOOLS=1 tells build.sh to skip the host tools step, which is seldom
+a good idea but there you have it.  The new HOST_EXTRA is an equally horrible
+idea, but if you feel the need it's a list of extra commands to pass through
+from the host $PATH.</p>
+
+<li>NO_CPLUSPLUS=1 tells it not to add C++ support in the toolchains it
+builds.</p>
+
+<li>NO_CLEANUP isn't a new variable, but you can now set this for entire
+builds and it should work.</li>
+</ul>
+
+<p>ccwrap improvements: Handle unexported $PATH better.  It doesn't need to
+search $PATH when argc[0] is a path (either absolute or relative to the current
+directory).  Also use Scrt1.o when building a shared library.  (Oddly this
+never caused a problem before, but do the right thing anyway.)</p>
+
+<p>Upgrades to BUILD_STATIC: it now takes a comma separated list of packages,
+with the special value "all" to build everything static, and "none" to build
+nothing static.  The default is to build static versions of busybox and the
+toolchain packages (gcc, binutils, make, and ccwrap) both due to the increased
+performance this provides under qemu (which has to repeatedly re-translate
+executable code pages that modify themselves, such as when dynamic linking
+patches per-process jump addresses), and also due to the increased portability
+this provides the native compiler tarball.</p>
+
+<p>(The host-tools stage always builds dynamic packages, because the glibc
+maintainer has a personal dislike of static linking, meaning glibc's static
+linking support (in addition to creating 400k "hello world" binaries) is both
+broken[LINK] and deprecated[LINK].  Some distros have even taken to breaking
+out the *.a format libraries used for static linking into a separate package,
+and not installing them by default.  The host-tools stage now tests for this,
+and refuses to continue in a dynamic-only build environment unless you set
+BUILD_STATIC=none.  You can rebuild under the resulting target system to
+natively compile static binaries, which uClibc supports quite well, but you
+can't generate them from the host.)</p>
+
+<p>The old FROM_ARCH is now HOST_ARCH, and the infrastructure using it
+(cross-compiler.sh and native-compiler.sh) has been cleaned up.  The
+HOST_UTILS variable was also removed, that's now built for the full
+cross and native compilers, but not the simple cross compiler.</p>
+
+<p>The more/smoketest.sh file no longer creates hdb.img.</p>
+
+<p>The host-tools stage has been upgraded to work around the utter stupidity of
+Ubuntu 10.04, which turned "gcc" into a perl script.  (Yes really.  No, I don't
+know what they were smoking.)</p>
+
+<p>Build zlib in host-tools (for squashfs) and in static-tools for dropbear's
+-C.  This is necessary for reproducing the build under a system-image, because
+the default system image type (squashfs) requires zlib to build.</p>
+
+<p>Update the command prompt in system images to show the amount of
+parallelism available via distcc.  (When it says 1 you haven't got
+distcc, and when it says a number greater than that you have.)
+The prompt now looks like:</p>
+<blockquote><pre>(powerpc:4) /home #</pre></blockquote>
+
+<p>The make, bash, and distcc builds are now part of the native-compiler stage
+(and their build scripts moved to sources/sections).  This means that a native
+toolchain now includes make, because it's hard to build make without make.
+This stage also records the uClibc and linux config files for posterity.</p>
+
+<p>The build was weaned off of toybox.  (Broke out oneit, sent patch upstream
+to busybox, and got netcat fixed in defconfig so native-build.sh could use
+it.)</p>
+
+<p>Several small bugfixes and cosmetic cleanups.  For example, we now delete
+empty build/temp-* directories when we're done with them, and several
+config options such as NO_NATIVE_COMPILER and NO_CLEANUP should be more
+reliable now.  Don't build hello-dynamic on a BUILD_STATIC=all system.
+Clean up debris files the kernel's headers_install leaves lying around.
+Minor upgrades to FORK=1 support, and QUIET is now part of FORK instead
+of a separate control.  Generating a package manifest should no
+longer produce error messages.  Empty temp directories get deleted on the
+way out.  Better support for building older tools as alt-packages (tested
+binutils 2.14 and gcc 3.4).  Comment out default UNSTABLE= URLs in download.sh,
+supply your own if you want that.  Binutils build now honors existing $CFLAGS
+(if any).  The dienow error message goes to stderr.  More reliably track
+package cache state when patches fail to apply.  Simplify system-image
+build (don't try to package root filesystem and build kernel in parallel
+anymore, squashfs and make both have internal SMP support).  BUILD_VERBOSE
+is now more verbose.  Reliability improvement for record-commands.sh.
+New shell functions blank_workdir and extract_package.  Consistently
+use name-name in scripts and name_name in functions.</p>
+
+<p>It's been a long 5 months...</p>
+
+<hr>
+<h2><a name="05-02-2010" />May 2, 2010</h2>
+<p>The name of the project is changing from Firmware Linux to Aboriginal
+Linux.  The new URL is "http://landley.net/aboriginal".</p>
+
+<p>Some reasons to move away from the old name are
+<a href=http://lists.impactlinux.com/pipermail/firmware-impactlinux.com/2009-October/000374.html>listed here</a>,
+and some reasons to pick the new name are covered in
+<a href=http://lists.impactlinux.com/pipermail/firmware-impactlinux.com/2010-April/000671.html>this thread</a>.</p>
+
+<p>Some links may be broken while we switch over.  Let us know what we've
+missed on the mailing list...</p>
+
+<hr>
+<h2><a name="03-29-2010" />March 29, 2010</h2>
+<p><a href=downloads/firmware-0.9.11.tar.bz2>Version 0.9.11</a> is out,
+based on <a href=/hg/firmware/shortlog/1020>hg commit
+1020</a>.  We're closing in on a 1.0 release, but not quite there yet.</p>
+
+<p>This version upgrades to Linux 2.6.33, uClibc 0.9.30.3, and BusyBox
+1.16.1.</p>
+
+<b><h3>Improved native builds</h3></b>
+
+<p>Most targets now have <a href=downloads/binaries>prebuilt binaries</a>
+for <a href=http://matt.ucc.asn.au/dropbear/dropbear.html>dropbear</a>,
+<a href=http://sourceforge.net/projects/strace/>strace</a>,
+<a href=http://busybox.net>busybox</a>.  These are statically
+linked against uClibc, so just download, set the executable bit, and run.</p>
+
+<p>These dropbear and strace binaries are built using the automated three-disk
+native build capability introduced <a href=#11-07-2009>back in November</a>,
+which has been improved and genericized this release.  Now one script creates
+a build image (see examples in sources/native-builds) and another script
+launches a system image with that build image attached as the third
+hard drive (/dev/hdc), telling the system image to automatically build
+those source packages and upload the result to the host via ftp.</p>
+
+<p>So to reproduce the dropbear and strace binaries for a supported ARCH,
+you could do:</p>
+
+<blockquote><pre>
+./build.sh ARCH
+sources/native-builds/static-tools.sh tools.hdc
+sources/more/native-build.sh ARCH tools.hdc output
+</pre></blockquote>
+
+<p>When the build exits, the results should be in the host's "output"
+directory.</p>
+
+<b><h3>Targets</h3></b>
+<p>The arm, mips, x86, x86-64 targets that worked last time still work.
+The armv4eb and m68k targets still don't work.</p>
+
+<p>The powerpc and sparc targets have been upgraded.  Powerpc now works with
+the 3-disk automated native build (although you'll need qemu 0.12.4 to take
+advantage of this).  The sparc dynamic linker still doesn't work in uClibc,
+but the statically linked system is now working well enough to build packages
+natively.</p>
+
+<p>New targets this release are i486 (thanks David Seikel) and mips64 (which
+mostly works, but the native toolchain isn't quite properly configured to
+build stuff with yet).</p>
+
+<p>Finally, the sh4 target was broken by a cosmetic cleanup of the startup
+assembly code in Linux 2.6.33 that rendered any binutils version older
+than 4 months unusable to build sh4.  While it's possible to patch around
+this, it hasn't yet been worth effort.  The Linux-sh4 maintainer is aware
+of the issue, but explicitly
+<a href=http://permalink.gmane.org/gmane.linux.ports.sh.devel/7237>doesn't
+care</a> about users other than his employer, and so far nobody
+else seems to care enough about supporting the discontinued Sega Dreamcast
+game console to argue with him.  (Might revisit this next release, but m68k
+support is a higher priority.)</p>
+
+<b><h3>Infrastructure</h3></b>
+<p>The system-image's "run-emulator.sh" is now a much smaller and simpler
+script, consisting primarily of the qemu command line.  (And if you export
+DEBUG=1 it prints the emulator command line.)  The distcc and hdb
+setup code moved to dev-environment.sh.</p>
+
+<p>The <a href=screenshots>screenshots</a> page is working again, if a bit
+stale.</p>
+
+<p>The bisectinate.sh script (to automatically git bisect a build issue)
+has been updated, more to come next release.</p>
+
+<p>The download.sh script has been updated to understand FORK=1 and download
+packages in parallel.  (And to extract them in parallel when
+EXTRACT_ALL=1.)</p>
+
+<p>The new export_if_blank shell function allows several more environment
+variables to be overridden, including TOP, SOURCES, SRCDIR, PATCHDIR,
+BUILD, SRCTREE, HOSTTOOLS, WRAPDIR, CC, and STAGE_NAME.</p>
+
+<p>I'd also like to thank the debugging efforts of Wolfgang Denk, who hit
+as many bugs trying to use this project as I normally do with other people's.
+He eventually got discouraged and left, but thanks to his efforts:</p>
+
+<ul>
+<li><p>We now unset several environment variables (such as ARCH and
+CROSS_COMPILE) that break things if the host exports random data in them
+before the build.  (Yes, this fights with export_if_blank above, and
+the way configuration works in general.  Some more design works is necessary
+here to let you configure the project with environment variables, but
+not be confused by existing environment debris.)</p></li>
+
+<li><p>BUILD_STATIC=none can how handle the case where the host toolchain
+can't build any static binaries at all.</p></li>
+
+<li><p>The CROSS_SMOKE_TEST implementation (which had bit rotted) was fixed and
+moved to its own script (sources/more/cross-smoke-test.sh), which is called by
+build.sh as necessary.</p>
+
+<p>Note that actually trying to use it is a question
+of getting qemu application emulation to work for your target.  For
+arm you need to tweak /proc/sys/vm/mmap_min_addr as root.  For ppc you
+need <a href=http://git.qemu.org/qemu.git/commit/?id=7983f435e5306a4b17e1edcb408ba64b33e9c88f>this patch</a>.  For mips64 somebody still needs to
+implement it (<a href=http://lists.gnu.org/archive/html/qemu-devel/2010-03/msg02218.html>no matter what gentoo thinks</a>).</p>
+
+<p>(There's a reason the smoke test was disabled long enough to bit-rot.
+It broke for qemu reasons more often than it found bugs in the toolchain.)</p>
+</li>
+</ul>
+
+<hr>
+<h2><a name="02-02-2010" />February 2, 2010</h2>
+
+<p><a href=downloads/firmware-0.9.10.tar.bz2>Version 0.9.10</a> is out,
+based on <a href=/hg/firmware/shortlog/966>hg
+commit 966</a>.</p>
+
+<p>Yeah, I know 1.0 is overdue for a release, here's a resync point
+with the 2.6.32 kernel and uClibc 0.9.30.2.</p>
+
+<p>There are some regressions this time around, which I plan to fix up
+in the next release.  The 2.6.32 kernel broke strace,
+and upgrading to the new version didn't fix it.  (I know how, I just haven't
+yet.)  The m68k target isn't currently building due to the uClibc upgrade
+(yeah, "bugfix only", I know), and the armv6l target seems to be broken two
+different ways.  I screwed up the screenshots page (which is halfway converted
+to Vladimir's new fancy version with style sheets, but "halfway" doesn't
+actually display right).  The cron job building nightly snapshots got taken down
+when the server's hard drive filled up, and now it's in the process of being
+upgraded with a couple new scripts:</p>
+
+<p>The new sources/more/migrate_kernel.sh script does a "make oldconfig"
+between the stable and "USE_UNSTABLE=linux" kernels, and creates a new
+alt-miniconfig-linux for the specified target with any new symbols that
+showed up.  (This means the snapshots should break less, but adding the
+symbols to the native configs will still require manual filtering.)</p>
+
+<p>Also, the new sources/more/bisectinate.sh script automatically does
+a git bisect between a known good and known bad (generally HEAD) version
+of one of the unstable packages (linux, uClibc, or busybox).  It can test
+that the build completes, or that the system image boots and successfully
+builds the static native dropbear binary.  (In theory this will allow the
+nightly snapshots to automatically isolate and report the first commit that
+broke them.)</p>
+
+<p>In other general infrastructure news: some extensive upgrades to the
+compiler wrapper (ccwrap), such as no longer needing GIMME_AN_S at compile
+time and instead autodetecting the presence of libgcc_s.so vs libgcc.a
+and behaving appropriately.  A largish cleanup/refactoring of the compiler
+build (described in
+<a href=/hg/firmware/shortlog/944>commit 944</a>)
+added a new "native-compiler.sh" script, which handles building the
+improved "cross-compiler" tarball that includes thread support and
+uClibc++ and is statically linked against uClibc on the host.
+The simple cross compiler is now "simple-cross-compiler.sh" (which is
+good enough to build a system image, but isn't very useful in other
+contexts).</p>
+
+<p>The host-tools.sh stage now only builds
+e2fsprogs or squashfs if the build is actually going to use them (based
+on the SYSIMAGE_TYPE config symbol).  The sources/sections scripts now
+come in two flavors: an *.build version with setup/cleanup called
+automatically and *.sh files which do their own setup/cleanup within
+the script.  Each system image's run-emulator.sh will once again add
+/sbin:/usr/sbin to the $PATH if it can't find mke2fs.</p>
+
+<p>The --extract command line option went away from download.sh because
+everything else works via environment variables.  Use EXTRACT_ALL=1 instead.</p>
+
+<p>Fixed a few regressions that snuck into previous versions: the
+config-{linux,uClibc,busybox} should once again be in the root filesystem's
+usr/src directory, buildall.sh should now try to build the static native
+dropbear/strace binaries for all targets (not just the last one) and it
+should properly be running smoketest.sh again.</p>
+
+<hr>
+<h2><a name="12-08-2009" />December 8, 2009</h2>
+<p><a href=downloads/firmware-0.9.9.tar.bz2>Version 0.9.9</a> is out,
+based on <a href=/hg/firmware/shortlog/921>hg commit 921</a>.</p>
+
+<p>Just a checkpoint on the way to 1.0, which is still planned for
+around new years, but there's been some schedule slippage already.</p>
+
+<ul>
+<li>
+<p><b>New documentation</b></p>
+<p>The presentation slides have been converted to
+<a href=presentation.html>HTML</a>, although the much prettier (and much
+bigger) <a href=downloads/presentation.pdf>PDF</a> is still available.</p>
+
+<p>There is also a <a href=FAQ.html>FAQ</a>, which is still somewhat sparse.
+(Ask away.)</p>
+</li>
+
+<li><p><b>Prebuilt binaries</b></p></li>
+
+<p>Added shm support to uClibc.  Bugfix to the c++
+compiler (it should work again).  The system images now have a "guest"
+user/group so packages can more easily be built as a non-root user.
+The shell prompt now includes the $HOST name.</p>
+</li>
+
+<li><p><b>Build scripts</b></p>
+<p>A new trivial-but-convenient "./clean.sh" script lets you delete just the
+target builds out of "build".  (If you delete that whole directory it has to
+re-extract all the package tarballs and rebuilt the host tools, which is
+often unnecessary work.)</p>
+
+<p>Command recording has been completely redone.  No more RECORD_COMMANDS
+variable, instead run sources/more/record-commands.sh to wrap the current
+$PATH in build/wrappy (either after or instead of running host-tools.sh),
+then run your build stages, and finally either run
+sources/more/report-recorded-commands.sh to get a summary or
+look at the raw command line lists in build/logs.</p>
+
+<p>The Great Refactoring continues in sources/sections: broke up
+binutils-gcc.sh into individual binutils, gcc, and ccwrap
+stages, split off linux-headers and uClibc++ from uClibc.sh,
+and spun off toybox.sh from busybox.sh.</p>
+
+<p>Also broke kernel_cmdline() out of qemu_defaults() to make it easier to add
+non-qemu sources/targets configurations without reinventing the wheel,
+and fixed up dependencies for hw-target builds (which should work a lot
+more reliably now).</p>
+
+<p>Bumped up the number of $CPUS used by the build to 1.5x the actual number
+(as long as your host has at least 512 megs of ram per actual CPU).  That
+should help keep larger servers busy.</p>
+
+<p>Some self-hosting fixes from Natanael Copa (making sure host-tools.sh
+builds on a uClibc host): added --disable-nls to the e2fsprogs build
+(what exactly is ./configure running all these tests for again?), and a
+squashfs patch (substituting a function uClibc hasn't got).</p>
+
+<p>Simplified system-image.sh to use killtree() instead of mysetsid.
+Simplified the cross-compiler/cross-static logic to set the $PATH to
+use the right one, rather than moving them around during the build.
+Updated smoketest-all.sh to show "NONE" for system images that didn't build.
+Added more support for SKIP_STRIP and CFLAGS=-g to the rest of the
+packages.  Cleaned out the old USE_COLOR stuff which was superseded by
+set_titlebar.</p>
+</li>
+</ul>
+
+<hr>
+<h2><a name=11-07-2009 />November 7, 2009</h2>
+<p><a href=downloads/firmware-0.9.8.tar.bz2>Version 0.9.8</a> is out,
+based on hg commit 876.  (If you want to see all the changes in this release,
+look at <a href=/hg/firmware/shortlog/876>commits 810 through 876</a>.)</p>
+
+<p.The current plan is to cut one more release at the end of the month, and
+then have the 1.0 release around new year's.  This could be considered a
+1.0-pre1, if you like.</p>
+
+<p>This release upgrades linux to 2.6.31.4 and busybox to 1.15.2.
+(The uClibc version is still 0.9.30.1, they haven't had a new release
+yet.)</p>
+
+<p>The old #firmware irc channel on freenode.net has been merged into #edev,
+so go there now to ask questions about this project.  (A _lot_ of
+knowledgeable, helpful people hang there who can answer your embedded
+development questions.)</p>
+
+<h3><b>Bug tracker and roadmap</b></h3>
+
+<blockquote>
+<p>The <a href=http://redmine.impactlinux.com/projects/impact>new bug
+tracker</a> has a <a href=http://redmine.impactlinux.com/projects/impact/roadmap>roadmap</a>
+showing what we plan to implement for the next release or two.</p>
+
+<p>It's also a place to file bugs, although sending them to the <a href=http://lists.impactlinux.com/listinfo.cgi/firmware-impactlinux.com>mailing list</a>
+is still the fastest way to get a fix.</p>
+</blockquote>
+
+<h3><b>New screenshots page</b></h3>
+
+<blockquote>
+<p><a href=screenshots>This page</a> lists every target, with
+a "screenshot" of the target's boot messages under qemu, and associated
+links to all the various prebuilt binaries for that target.</p>
+</blockquote>
+
+<h3><b>Fun with static linking</b></h3>
+
+<blockquote>
+<p>The cross-compiler-$ARCH tarballs are all compiled for i686 and
+statically linked against uClibc for maximum portability.</p>
+
+<p>The busybox binary in the root filesystem images is now built statically by
+default, providing a 20% speed improvement in ./configure times under qemu
+(due to the reduced page translation overhead).  You can switch this back
+to dynamic with "BUILD_STATIC=none".</p>
+
+<p>Static dropbear and strace binaries for each target are also available,
+built by the new sources/more/native-static-build.sh script.</p>
+</blockquote>
+
+<h3><b>System Image interface changes</b></h3>
+
+<blockquote>
+<p>The run-from-build.sh script used to set up a development environment
+out of the build directory, but didn't provide an easy way to do so based
+on downloaded tarballs.  (You had to work out and provide extensive
+command line arguments to the run-emulator.sh script.)  This has been
+fixed.</p>
+
+<p>The run-emulator.sh script in each system interface tarball is now much
+simpler.  It now looks for distccd and $ARCH-cc in its $PATH, and sets up
+distcc acceleration automatically if it finds them.  (It announces whether
+or not it has managed to do so, and init.sh announces whether or not it
+thinks it has distcc acceleration enabled just before launching a command
+prompt.)  So setting up the distcc accelerator should be less of a pain.</p>
+
+<p>Also, run-emulator.sh no longer takes any command line arguments.  Instead
+the environment variable $HDB indicates a /dev/hdb disk image to mount on
+/home, $HDBMEGS specifies the size of a (sparse ext2) HDB image to create if
+it doesn't already exist, and QEMU_MEMORY indicates how many megabytes of
+physical memory the emulator should allocate for the virtual system.</p>
+
+<p>Each system-image also provides a simple wrapper dev-environment.sh
+which calls run-emulator.sh with HDBMEGS=2048, HDB=hdb.img, and
+QEMU_MEMORY=256.  (These are the values run-from-build.sh used to provide,
+and give a reasonable build environment with 256 megs of physical memory
+and 2 gigabytes of writeable /home space.)  The run-from-build.sh script
+itself now merely adds the specified build/cross-compiler-$ARCH directory
+to the $PATH, changes directory to the appropriate build/system-image-$ARCH,
+and calls ./dev-environment.sh.  It's 3 lines.</p>
+
+<p>The system images can now also automatically mount a third disk image
+($HDC, specifying an /dev/hdc image to mount onto the /mnt directory), and if
+that filesystem contains an executable "init" program in its root directory
+the sbin/init.sh script will run that instead of launching a command prompt.</p>
+
+<p>The new native-static-build.sh uses this HDC capability to automatically
+run some native package builds without having to drive the build through
+/dev/console via a wrapper script (the way smoketest.sh does).  See
+sources/more/setup-native-static-build.sh for the script which generates
+the hdc.sqf image for this.</p>
+
+<p>Note that some targets (such as sh4 and powerpc) don't yet support /dev/hdc
+due to QEMU board emulation limitations.</p>
+</blockquote>
+
+<h3><b>Build interface changes</b></h3>
+
+<blockquote>
+<p>The new "sources/more" directory contains scripts the end user can
+call, but which aren't important enough to clutter up the top level
+directory with.  The buildall.sh and smoketest-all.sh scripts moved there,
+as did the cronjob.sh used to build the nightly snapshots.</p>
+
+<p>The new sources/more/native-static-build.sh natively compiles dropbear and
+strace under the emulator, and copies them out to the host through the virtual
+network (into the build/cron-temp directory) using busybox ftpd on the host.
+This provides an example of how to use the new HDC /mnt/init functionality
+to perform automatic builds under the emulator, and copy the results out
+through the network.  It uses the new sources/timeout.sh wrapper to detect
+hung builds (defined as builds that haven't produced a line of output within
+a given number of seconds).</p>
+
+<p>The new BINARY_PACKAGE_TARBALLS variable (in the file "config") tells
+the build to create a separate tarball of the binaries produced building
+each package.  (These more granular tarballs aren't shipped yet, but may
+be in a future release.)</p>
+
+<p>The new SKIP_STRIP variable tells the build not to strip binaries.
+(Add in CFLAGS=-g for enormous binaries full of debug info.)</p>
+</blockquote>
+
+<h3><b>Target upgrades</b></h3>
+
+<blockquote>
+<p>Powerpc and sh4 should now work fine with stock qemu 0.11.0.</p>
+
+<p>The arm platform now has an armv4tl target.  This is a little-endian armv4
+eabi, for armv4 chips offering the "thumb" extension which eabi requires.
+(The plain armv4l target is still oabi.  The oabi/eabi thing is different
+binary ABIs, a bit like Linux vs BSD binaries or aout vs elf.  The eabi
+standard is the new one, but some of the older arm hardware can't support
+it.  This takes it down as far as it can go.)</p>
+</blockquote>
+
+<h3><b>Infrastructure</b></h3>
+
+<blockquote>
+<p>Behind the scenes, some extensive work is going on to simplify the
+build scripts.  (The documentation's fallen a bit behind reality here,
+but should be back up to date next release.)</p>
+
+<p>The uClibc miniconfigs are now automatically generated, with the
+bulk of the config living in sources/baseconfig-uClibc and the few
+target specific lines being appended from the UCLIBC_CONFIG variable
+defined in the target's settings file.</p>
+
+<p>The other big change is factoring out lots of common code, moving it into
+the sources/sections directory, so things like the uClibc, busybox, and
+toolchain builds now live in one place and are called from the various
+other scripts that need them.  (This may eventually allow alternate build
+scripts for these packages, potentially swapping out glibc for uClibc, or
+llvm/clang for gcc.  In the meantime, it eliminates a lot of redundant code.)</p>
+
+<p>This required lots of small cleanups, such as making the scripts now
+consistently use the $STAGE_DIR variable for their output directory.
+Some other cleanups were primarily cosmetic, such as moving the extracted
+tarball cache directory from build/sources to build/packages.  (Tarballs
+live in packages, extracted tarballs live in build/packages.)</p>
+
+<p>The root filesystem now contains simple /etc/passwd and /etc/group files,
+because dropbear won't work without them (not even to ssh out).</p>
+
+<p>Several small bugfixes (ccwrap no longer segfaults if $PATH isn't
+exported, /etc/resolv.conf doesn't get overwritten unnecessarily by init.sh,
+etc).</p>
+</blockquote>
+
+<hr>
+<h2><a name=08-20-2009 />August 20, 2009</h2>
+<p><a href=downloads/firmware-0.9.7.tar.bz2>Version 0.9.7</a> is out, a little
+over a month and a half late.  It's a larger update than usual, so the
+release notes are a bit long.</p>
+
+<p>This release is based on
+<a href=/hg/firmware/log/807>mercurial version 807</a>
+of the build scripts,
+and includes <b>Linux 2.6.30.4</b> and <b>BusyBox 1.14.3</b>.
+No new uClibc release is out since last time.</p>
+
+<p>Lots of little bugs got fixed.  For example, this release should build on
+Fedora 11 (and any other platform that hasn't got "which" installed by
+default), and now supports distcc and ccache on the host (and will use them
+automatically if they are installed).</p>
+
+<h3><b>Changes to build stages: new root-filesystem, cross-static, and
+native-compiler tarballs, upgraded buildall.sh and smoketest-all.sh.</b></h3>
+
+<blockquote>
+<p>The old "mini-native" stage has been renamed "root-filesystem"
+(the same way package-mini-native became system-image last release).  The
+script names (and resulting tarballs) now indicate what each stage makes.
+So build.sh calls host-tools.sh, cross-compiler.sh, root-filesystem.sh,
+and system-image.sh, in that order.</p>
+
+<p>The old build-static-toolchains.sh script is gone, with its functionality
+integrated into buildall.sh (which now builds i686 hosted static toolchains
+for each target by default).  This is implemented by two new environment
+variables triggering optional behavior: STATIC_CROSS_COMPILER_HOST
+and BUILD_STATIC_NATIVE_COMPILER.</p>
+
+<p>Setting STATIC_CROSS_COMPILER_HOST to an architecture name creates a
+cross compiler statically linked to run on that host (via a technique
+known as canadian cross compile).  For example, the invocation:</p>
+
+<blockquote>
+<p>BUILD_CROSS_COMPILER_HOST=i686 ./build.sh armv4l</P>
+</blockquote>
+
+<p>Would create a tarball called "cross-static-armv4l.tar.bz2" which was
+built to run on an i686 host, and was statically linked (against uClibc)
+on that host to be distribution independent.</p>
+
+<p>Setting BUILD_STATIC_NATIVE_COMPILER to any non-empty value creates a
+native compiler for the target (packaged as native-compiler-$ARCH.tar.bz2),
+which is statically linked against uClibc so it can be extracted and run on
+just about any system of the appropriate type.  (So if you can get a Linux
+shell prompt and have enough storage and memory, you should be able to
+compile stuff.)</p>
+
+<p>The upgraded smoketest-all.sh script runs smoketest.sh on each
+target built.  (The smoketest.sh script attempts to compile and run "hello
+world" natively within a system image under qemu, and indicates whether or
+not it worked via "pass" or "fail".)  Note that smoketest-all.sh now
+autodetects which targets have been built (have system images in the build
+directory), and smoketest.sh times out after 60 seconds so targets that hang
+will return failure eventually.</p>
+
+</blockquote>
+
+<h3><b>Squashfs 4.0 now the default system image type</b></h3>
+
+<blockquote>
+<p>The root filesystem image type is now squashfs by default.  (To change it set
+SYSIMAGE_TYPE to ext2 or initramfs, either in your environment or the file
+"configure".)</p>
+
+<p>This involved upgrading the userspace squashfs support package
+to the version 4.0 supported by the upstream kernel, and numerous small fixes
+to work with a read-only root filesystem (with writeable spaced mounted on
+/home and /tmp).</p>
+</blockquote>
+
+<h3><b>Target upgrades</b></h3>
+<blockquote>
+<h3><b>ARM upgrades</b></h3>
+
+<blockquote>
+<p>Lots of work on the arm targets, with the addition of a new armv6l target
+and conversion of the armv5l target to
+<a href=http://www.linuxfordevices.com/c/a/Linux-For-Devices-Articles/Why-ARMs-EABI-matters/>ARM EABI</a> (which used to be documented <a href=http://www.arm.com/products/DevTools/ABI.html>here</a>,
+but ARM screwed up its website and now you have to go
+<a href=http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.subset.swdev.abi/index.html>here</a>).  The armv4l target still provides an ARM v4
+little endian soft float OABI target (which is "the i386 of ARM", meaning it
+should run on just about any arm hardware, if a bit slowly).  A new
+armv4be target is the same as armv4l except big endian.</p>
+
+<p>A new hw-tct-hammer target supports the <a href=http://www.tincantools.com/product.php?productid=16143>Tin Can Tools hammer/nail board</a>.</p>
+</blockquote>
+
+<h3><b>Updated sparc support, almost works now.  (uClibc for sparc still sucks.)</b></h3>
+
+<blockquote>
+<p>The sparc target has also been upgraded to the point where it now gives
+a shell prompt.  (And immediately dies with a bus error or a hang if you try
+to do anything, because uClibc for sparc still doesn't work.  The "upgrade"
+consisted of statically linking everything because uClibc's dynamic loader
+doesn't work for sparc.)</p>
+</blockquote>
+
+<h3><b>PowerPC remains fiddly due to QEMU issues, new powerpc-440fp target</b></h3>
+
+<blockquote>
+<p>PowerPC support in QEMU is
+<a href=http://lists.gnu.org/archive/html/qemu-devel/2009-07/msg01007.html>officially unstable</a>, so although FWL's powerpc target hasn't significantly
+changed from last release, the version of QEMU in source control no longer
+runs it (nor the binary powerpc system images released with FWL 0.9.6) and
+QEMU's developers do not consider this a regression.  While we search for a new
+Linux kernel .config that matches QEMU's current expectations (and await a
+release considered "stable"), note that setting HOST_BUILD_EXTRA=1 before
+running host-tools.sh will build a version of qemu that does run powerpc and
+put it in build/host where run-from-build.sh can find it.  (Note also that
+building qemu from source still takes significantly longer than the rest of the 
+host-tools.sh stage combined.)</p>
+
+<p>A new powerpc-440fp target produces code for the powerpc 440 with hardware
+floating point.  (Theoretically QEMU's "bamboo" board emulation should
+run this, but QEMU doesn't emulate a 440 processor yet.  We compromise by
+running a ppc440 filesystem under qemu's power mac emulation, to take
+advantage of the ppc440 instruction set being almost a subset of full powerpc.
+This gets us a shell prompt, but throws illegal instruction errors if you
+try to do anything fancy.)</p>
+
+<p>(Note that powerpc-440fp is not a hw-target for powerpc, it's a different
+processor instruction set like i586 vs i686.  Alas, one that qemu doesn't
+properly emulate yet.)</p>
+
+</blockquote>
+
+</blockquote>
+
+<h3><b>Now using last GPLv2 release of GCC, and future plans</b></h3>
+
+<blockquote>
+<p>The upgrade to <b>gcc 4.2.1</b> gives us
+<a href=http://gcc.gnu.org/ml/gcc-announce/2007/msg00003.html>the last
+GPLv2 licensed version of gcc</a> (thus avoiding
+<a href=http://lwn.net/Articles/343608/>various problems</a>).
+<a href=http://savannah.gnu.org/forum/forum.php?forum_id=4932>Make 3.81</a>
+was already the last GPLv2 release of that project.</p>
+
+<p>Note that <b>bash 2.05b</b> is still intentionally ancient (to avoid the
+bloat of 3.x), and may be replaced with busybox ash as the default FWL shell
+in a future release.  Similarly, although <b>binutils 2.17</b> was the last
+GPLv2 version from the FSF, an upgrade to
+<a href=http://ftp.kernel.org/pub/linux/devel/binutils/release.binutils-2.18.50.0.1>the
+last GPLv2 release of Red Hat's binutils fork, 2.17.5.0.17</a> is under
+consideration for a future release.  But mostly the GNU compiler toolchain
+has been upgraded as far as possible for the foreseeable future, either because
+new versions provide no significant benefits or because they're not available
+under a license compatible with the Linux kernel's.</p>
+
+<p>Future upgrades to these packages will either be via individual patches
+(maintaining GPLv2 license) or by investigating alternative non-FSF
+packages such as OpenBSD's <a href=http://lwn.net/Articles/255558>PCC</a> or
+Apple's <a href=http://llvm.org>LLVM</a>.  In preparation for support of
+alternate compilers, the build scripts have moved from using "gcc" to the
+more generic "cc" for the compiler name wherever possible, but currently no
+drop-in replacement compiler is available.</p>
+
+</blockquote>
+
+<h3><b>Implementation details</b></h3>
+
+<blockquote>
+<p>Each target configuration renamed "details" to "settings", and added
+a "description".  (This makes Gentoo From Scratch's kconfig easier.)</p>
+
+<p>The download.sh stage now populates a "packages" directory instead of
+"sources/packages", meaning that everything in the sources directory now
+comes from the FWL source tarball.  To do the equivalent of "make clean"
+you can "rm -rf build", and to do a "make distclean" you can
+"rm -rf packages build".</p>
+
+<p>The build no longer deletes the alt-* tarballs when UNSTABLE isn't
+set, you must do that by hand if you want an updated alt- version of a
+package.  The packages/MANIFEST file creation can now use the extended
+tarball information to detect git version numbers.</p>
+
+<p>The === bars now show the current stage name and architecture each
+package is being built for.  (Pipe the build output to grep "^===" to see
+just the start of each new package build.)  The same information is sent
+to the title bar of your xterm, export NO_TITLE_BAR=1 if you don't want the
+build to update the title bar.</p>
+
+<p>The BUILD_STATIC option now applies to all packages built in
+root-filesystem.sh, and can be set from a target configuration's settings file
+(as sparc is now doing).</p>
+
+<p>The BUILD_VERBOSE option passes V=1 to the linux, busybox, and uClibc
+builds that otherwise sanitize their output.</p>
+
+<p>You can now set NATIVE_TOOLCHAIN=only to build just the compiler
+and not the other parts (busybox, make, toybox, bash...)  This is used
+by the canadian cross steps in build.sh to create static cross and native
+compilers.</p>
+
+<p>This release broke up scripts/include.sh so that script just
+sets lots of environment variables, and now includes scripts/functions.sh
+to define shell functions.  The architecture setup (reading architecture
+files and creating temporary directories and such) is now done via the
+"read_arch_dir $ARCH" shell function, so merely including sources/include.sh
+should no longer have significant side effects.  Similarly, setupfor now
+has an EXTRACT_ONLY environment variable instead of depending on a blank
+$ARCH (which host-tools.sh has, despite wanting to snapshot source so it can
+build stuff).</p>
+
+<p>Various fixes to make parallel builds work better.  (So it neither leaves
+background processes running nor kills the parent shell and closes your
+xterm when you hit ctrl-c.)  The new "killtree" shell function,
+which kills a process and all its children and grandchildren recursively with
+pgrep.  We also build our own sources/toys/mysetsid.c program with the host
+compiler (because the normal command line "setsid" doesn't also do a tcsetpgrp
+on stdin so signal handling isn't forwarded to the new session).  This should
+more reliably allow ctrl-c to exit smoketest.sh and system-image.sh and such,
+and let FORK=1 ./buildall.sh stop all its background processes when
+interrupted.  (Note that smoketest-all.sh also honors FORK=1.)</p>
+
+<p>The logs from buildall.sh now live in build/logs.</p>
+
+<p>The new config option ROOT_NODIRS avoids creating the normal set of empty
+directories in the new root filesystem.  (The old /tools support went
+away, but a BUILD_STATIC ROOT_NODIRS build can be extracted into /tools
+and used from there.  Then either symlink "/lib" to "/tools/lib" or "export
+UCLIBC_DYNAMIC_LINKER=/tools/lib/ld-uClibc.so.0" to add more stuff to
+/tools natively.)</p>
+
+<p>The compiler wrapper (sources/toys/ccwrap.c) can now use
+architecture-specific WRAPPER_TOPDIR values.  (I.E. armv4l-cc could
+"export armv4l_WRAPPER_TOPDIR=/path/to/directory".)  This makes
+canadian cross compiles a lot easier.</p>
+</blockquote>
+
+<hr>
+<h2><a name=04-02-2009 />April 2, 2009</h2>
+<p><a href=downloads/firmware-0.9.6.tar.bz2>Version 0.9.6</a> includes
+Linux 2.6.29 and uClibc 0.9.30.1, now with support for sh4 and upgraded powerpc
+support.</p>
+
+<p>The big news is the <a href=http://impactlinux.com/code/gfs/>Gentoo
+From Scratch</a> project, which extends a FWL system image into a Gentoo
+Stage 1 environment, building natively inside qemu.</p>
+
+<p>The <a href=documentation.html>documentation</a> has been extensively
+rewritten (but needs more).  The source now contains a README and each image
+has a usr/src/MANIFEST file listing the packages it built from.</p>
+
+<p>The cross and native toolchains now include ldd, readelf, and
+ldconfig.  Added support for hardware targets (an unfinished example
+of which is hw-wrt610n) that use the same cross compiler and system
+image as a qemu platform, but build/package a different kernel to boot
+on actual hardware.</p>
+
+<p>Several new build options:</p>
+<ul>
+<li><p><b>$SYSIMAGE_TYPE</b> defaults to "ext2" but can now
+produce and boot "initramfs" images as well. (And squashfs, but that doesn't
+work yet due to missing features in squashfs tools version 3.4.)</p></li>
+<li><p>Setting <b>$HOST_BUILD_EXTRA</b> compiles qemu 0.10.1 in host-tools.sh.
+You currently need to do this to run sh4 or powerpc, 0.10.1 has some bugs
+needing patches.  Not on by default because it takes a _long_ time.</p></li>
+<li><p><b>$NO_CLEANUP</b> keeps source around after builds for debugging purposes.</p></li>
+<li><p><b>$SYSIMAGE_HDA_MEGS</b> lets you control the size of the ext2 system images.</p></li>
+<li><p><b>$SNAPSHOT_SYMLINK</b> lets the extracted source live on a different
+filesystem than the build happens on.  (Once the updated squashfs userspace
+tools ship, build-static-toolchains.sh may be updated to use this.)</p></li>
+<li><p><b>$CROSS_SMOKE_TEST</b> use qemu application emulation to test run hello
+world program at the end of the cross compiler build stage.</p></li>
+<li><p><b>$SKIP_STAGE_TARBALLS</b> don't create tarballs of each stage,
+just populate the directories.</p></li>
+<li><p><b>$NATIVE_RETROFIT_CXX</b> retroactively add uClibc++ to the cross
+compiler tarball during the native build stage.</p></li>
+</ul>
+
+<p>The run-emulator.sh scripts of system images have several new options,
+do "./run-emulator.sh --help" for a list.  Takes several environment
+variables such as $QEMU_EXTRA and $KERNEL_EXTRA.  Root filesystems can
+now run in read only mode with "KERNEL_EXTRA=ro".</p>
+
+<p>Lots of build infrastructure upgrades.  The build stages have been
+reorganized somewhat (most noticeably package-mini-native.sh is now called
+system-image.sh).  The "sources/packages" directory has moved up a
+directory (to separate repository files from stuff downloaded at runtime).
+Upgrades to the cc wrapper and the USE_UNSTABLE infrastructure.  Better
+stripping of the cross compilers and system images, so everything's a bit
+smaller.  The mirror list now lives in download.sh.  New buildall.sh is a
+wrapper around build.sh.  New build-static-toolchains.sh builds them under
+qemu; set FORK=1 to build them in parallel just like buildall.sh.  The
+ext2 system images are now built at a small size with genext2fs and
+then expanded with resize2fs (because genext2fs slows down exponentially
+as size increases; this means e2fsprogs is built in host-tools.sh now).
+Distcc has been upgraded, and should work more reliably now.</p>
+
+<p>Too many little bug fixes to list.</p>
+
+<hr>
+<h2><a name=12-16-2008 />December 16, 2008</h2>
+<p>The mailing list moved to firmware at impactlinux.com.  The link in
+the nav bar on the left has changed, but the
+<a href=http://www2.them.com:8080/cgi-bin/mailman/listinfo/firmware>old
+archives</a> are still there for the moment.</p>
+
+</hr>
+<h2><a name=12-03-2008 />December 3, 2008</h2>
+<p>After several false starts (I.E. last minute bugs, yes I test this thing
+before shipping it),
+<a href=downloads/firmware-0.9.5.tar.bz2>Version 0.9.5</a> is out, inching
+towards a 1.0 release.  Lots of new work this time.</p>
+
+<p>The biggest news is uClibc 0.9.30 and uClibc++ 0.2.2.  The native toolchain
+now supports C++, hooked up to distcc and everything.</p>
+
+<p>The <a href=documentation.html>documentation</a> has been extensively
+rewritten.  (There's always more to do, but most of it isn't horribly out
+of date anymore.)</p>
+
+<p>The packaging stage now uses genext2fs instead of User Mode Linux, so
+the most brittle part of the build has been removed.  FWL can now fully
+rebuild itself under itself, all the way through the packaging stage.</p>
+
+<p>My personal website's getting a touch overwhelmed, so a higher bandwidth
+site is now available at
+<a href=http://impactlinux.com/fwl>impactlinux.com</a>.  This should become
+the new primary website going forward.</p>
+
+<p>BusyBox has also been upgraded (to 1.13.0), and the new USE_UNSTABLE
+infrastructure allows test versions of any package to be downloaded and built
+without forking the build scripts, so future package upgrades can be dealt
+with as side projects without blocking other important work.</p>
+
+<p>The packaging stage now uses genext2fs instead of User Mode Linux, so
+the most brittle part of the build has been removed.  FWL can now fully
+rebuild itself under itself, all the way through the packaging stage.</p>
+
+<p>The old forkbomb script has been replaced with sources/build-all-targets.sh.
+with an argument --fork to build all targets in parallel, and "--fork 3"
+to limit the parallelism.  This script can run from a cron job, producing
+a "buildall" directory with tarballs, compressed logs, and a README file
+listing the version of each package.  The environment variable USE_STATIC_HOST
+specifies an $ARCH to create statically linked cross compilers
+for.  (The build will then try to use them for the later stages,
+and won't get far if you specify an arch that can't run on the host.)</p>
+
+<p>The include.sh script has been broken up, with a new sources/functions.sh
+containing shell functions (like download, setupfor, and cleanup) and
+a new "config" setting the user-editable environment variables that control
+the build.  Several of these variables have been renamed and their number has
+grown.  You can now specify the colors for each build stage using the variables
+at the end of config.</p>
+
+<p>Building mini-native in a Linux From Scratch style /tools directory is
+no longer the default.  Instead set NATIVE_TOOLSDIR=1 if you want that
+kind of layout instead of a more conventional layout.  (Similarly,
+NATIVE_TOOLCHAIN=1 now enables the native toolchain, but that variable
+defaults to enabled in config.)</p>
+
+<p>See the <a href=documentation.html>docs</a> for details.</p>
+
+<hr>
+<h2><a name=08-06-2008 />August 6, 2008</h2>
+<p><a href=downloads/firmware-0.9.0.tar.bz2>Version 0.9.0</a> is out
+(<a href=/hg/firmware/shortlog/378>changeset 378</a>)
+and can rebuild itself under itself.  (The packaging step still requires User
+Mode Linux to create ext2 images, which only works on x86 and x86-64 hosts.
+The next release should replace that with something more portable.)
+The root filesystem is now based on BusyBox 1.11.1 (plus a few bug fixes).</p>
+
+<p>The prebuilt binary images have been moved into their own
+<a href=downloads/binaries>binaries</a> directory.
+The prebuilt binary <a href=downloads/binaries/cross-compiler>cross
+compilers</a> are statically linked against uClibc for better portability.
+Updated the <a href=downloads/README>README</a> to better describe the
+contents of the <a href=downloads/binaries/system-image>system-image
+tarballs</a>.</p>
+
+<p>The forkbomb.sh script can now take a number of parallel targets to
+launch, for example "./forkbomb.sh --fork 3".  (The resulting display is kind
+of horrible but the out-$ARCH.txt files are still legible.)  Leaving off the
+number still builds all targets in parallel, with the original display.</p>
+
+<p>The include.sh script was reorganized so that interesting environment
+variables the user might want to export for themselves are set near the top
+of the script.  Currently this includes:</p>
+
+<ul>
+<li><p><b>BUILD_SHORT</b> - Makes the mini-native.sh stage skip building
+development tools.  The resulting mini-native root filesystem contains uClibc
+and busybox, but nothing else.  (Export "BUILD_SHORT=headers" to put back the
+toolchain headers for use by another compiler, such as tinycc.)</p>
+
+<li><p><b>BUILD_STATIC</b> - Tell cross-compiler.sh to create static
+binaries, for a more portable cross compiler toolchain.  (If you want them
+linked against uClibc, build a mini-native for your host, chroot into it, and
+then rebuild under that.)</li>
+
+<li><p><b>PREFERRED_MIRROR</b> - Tell download.sh to fetch packages from a
+non-default location (falling back to the standard mirror list if it can't get
+one from there).</p></li>
+
+<li><p><b>RECORD_COMMANDS</b> - Record a list of all command lines used during
+each build stage log files named "cmdlines.$STAGE.$PACKAGE" under the build
+directory.  Each file can be turned into a list of the command names used via
+"awk '{print $1}' build/cmdlines* | sort -u".  The script
+sources/toys/report_recorded_commands.sh gives a report of all commands
+used by each package after a call to "RECORD_COMMANDS=1 ./forkbomb.sh".
+(This is an easy way to find out exactly what environmental dependencies a
+package needs to build, or at least what it uses out of $PATH).</p></li>
+</ul>
+
+<p>Updated documentation is in progress...</p>
+
+<hr>
+<h2><a name=06-06-2008 />June 6, 2008</h2>
+<p><a href=downloads/firmware-0.4.0.tar.bz2>Version 0.4.0</a> is out
+(<a href=/hg/firmware/shortlog/345>changeset 345</a>),
+with kernel 2.6.25.4 and the "distcc trick" working out of the box.</p>
+
+<p>The distcc trick accelerates a native build by calling out to the
+cross compiler.  To use it, download the appropriate cross-compiler-$ARCH and
+system-image-$ARCH tarballs, run the "run-with-distcc.sh" from the system image
+directory with the path to the cross compiler directory as its first argument.
+(You need to have distcc installed on the host system.)</p>
+
+<p>After building from source, the cross-compiler and system-image directories
+remain in the build directory.  The "emulator-build.sh" runs these with
+distcc acceration set up.  The script "smoketest.sh" is a wrapper
+around emulator-build.sh which feeds a script into qemu's stdin to compile
+and run a multi-threaded "hello world" under the emulator, using distcc and
+the cross compiler.</p>
+
+<p>If smoketest.sh works for a platform, it means a lot of stuff worked to get
+that far.  The cross compiler worked to build the system, and the emulated
+system booted so QEMU, the uClibc config, and the kernel config agreed.
+The emulated system has a working virtual hard drive and serial port, and for
+distcc to work it has a working virtual network connection.  Running "make"
+would also require a working realtime clock.</p>
+
+<p>The seven commands missing in order to run the FWL build under itself
+are bzip2, sort, diff, wget, install, od, and find.  (The busybox versions,
+where available, had a bug, and they're not in toybox yet.)  I'm trying to
+get those in for the next release in September.</p>
+
+<p>Sorry I missed a release back in April.  Shouldn't happen again.</p>
+
+<hr>
+<h2><a name=01-29-2008 />January 29, 2008</h2>
+<p><a href=downloads/firmware-0.3.1.tar.bz2>Version 0.3.1</a> is out
+(<a href=/hg/firmware/shortlog/275>changeset 275</a>), with
+kernel 2.6.24.  The <a href=downloads/images>images</a>
+are now tarballs each containing the ext2, zImage, and run script files.
+The run scripts now run qemu-setup.sh by default so /proc, /sys, /dev
+and the virtual network are initialized, and the default shell is busybox
+ash (so cursor keys and history work).</p>
+
+<p>Sparc is still broken (tracked it down to a dynamic linking bug, I think,
+haven't fixed it yet) and m68k is failing to build with an internal compiler
+error (next release I should upgrade the compiler).  All the other targets
+have a working virtual network, and all but powerpc exit qemu when you
+exit the PID 1 command shell.</p>
+
+<p>Building on an x86-64 host< should no longer be insanely slow (the
+gcc-min-heapsize arguments that allow 32-bit hosts to build in
+128 megs of ram do very impolite things to 64-bit hosts), and the resulting
+x86-64 cross compiler should now be properly relocatable.</p>
+
+<p>Better build dependency tracking: the host-tools script is now
+populating a single directory with all the commands needed by the build, and
+restricting $PATH to that directory (so it can't accidentally call any
+commands that aren't explicitly listed).  It's building toybox and busybox to
+provide most of these commands (the remaining ones are listed towards the end
+of include.sh), and creating symlinks to the remaining ones out
+of the original $PATH.  This allows it to build on a wider range of host
+distributions.</p>
+
+<hr>
+<h2><a name=11-02-2007 />November 2, 2007</h2>
+<p><a href=downloads/firmware-0.3.0.tar.bz2>Version 0.3.0</a> is out
+(changeset 242), with kernel 2.6.23.  PowerPC finally works under
+qemu (network and everything), and it's building a m68k target
+(although I have no emulator to run that).  That means there are
+ten targets, of which eight run under qemu.  (Sparc is still
+broken, let me know if anybody actually cares.)</p>
+
+<p>The new "./forkbomb.sh --fork" script builds all the targets in
+parallel, or use --nofork if you haven't got the memory for that
+(and --watch to watch and existing build if you ctrl-c out of
+the display before it's done).</p>
+
+<p>The build is now smarter about extracting only one copy of the
+source code (in build/sources) and re-using it for multiple builds,
+building out of tree (via cp -rs to create a tree full of symlinks
+so the package doesn't need native out-of-tree support).</p>
+
+<hr>
+<h2><a name=09-02-2007 />September 2, 2007</h2>
+<p>Added <a href=new_platform.html>a porting guide</a>.  I'm working on
+m68k, ppc, big endian arm, and maybe blackfin targets for the next release,
+and thought other people might be interested in the process.  (The vast
+majority of it is fiddly debugging.  These are the other steps.)</p>
+
+<hr>
+<h2><a name-06-27-2007 />June 27, 2007</h2>
+<p><a href=downloads/firmware-0.2.2.tar.bz2>Version 0.2.2</a> is out
+(changeset 185).  Using uClibc 0.9.29 release, several small bugfixes,
+new mips big-endian config, actually work when /bin/sh->dash (mostly
+by explicitly saying /bin/bash everywhere), automatically detect
+the number of CPUs in the machine to feed -j to make, and better
+diagnostic output.</p>
+
+<hr>
+<h2><a name=04-09-2007 />April 9, 2007</h2>
+<p><a href=downloads/firmware-0.2.1.tar.bz2>Version 0.2.1</a> is out
+(changeset 156).  Significant upgrades to armv4l: the native compiler works
+now, and it's using soft-float.  Added armv5l and i586 targets to show how
+to do that kind of variant.  Added preliminary powerpc support (although
+qemu can't run it yet).  Reorganized the download directory and rewrote
+the <a href=downloads/README>README</a>.  Added squashfs back (the kernel
+supports it, but it's not using it yet).  Moved uClibc to miniconfig.
+(Yes, the patch for this is huge, and yes I need to push it all upstream into
+the Linux kernel.  On the bright side, this one builds on a host that doesn't
+have curses installed.)  Stopped trying to build qemu (at least until they
+get the gcc 3.x dependencies cleaned out), now just warn if it's not there
+(so far the build only uses it to sanity-test the cross compiler, which is
+now skipped automatically if it's not there).</p>
+
+<p>I note that some versions of Ubuntu (Edgy and up) are pushing a political
+agenda.  They install bash, but point /bin/sh to dash instead.  (So why
+install bash if you're not going to use it?)  This breaks all sorts of things,
+and if somebody can tell me how to force make to run "/bin/bash" instead of
+"/bin/sh", I'll consider trying to deal with the mess.  Until then, I suggest
+"rm /bin/sh; ln -s bash /bin/sh" to get a working system.  (I'm no fan of
+bash, but dash is just broken.)</p>
+
+<p>(Those of you who use vi and want to be able to use the cursor keys while
+in insert mode might want to do something similar with vi->vim.  Ubuntu seems
+to be trying to train users to change their habits.  Dog biscuits would be a
+more honest approach.)</p>
+
+<p>Update: I've been pointed at
+<a href=https://wiki.ubuntu.com/DashAsBinSh>this</a> as evidence Ubuntu isn't
+pushing a political agenda.  Ok, maybe it's just really bad technical judgement.
+Are they honestly saying that people write shell scripts for the speed?  And
+how do you make a size argument and then install bash by default in ADDITION
+to the other shell?  Boggle.  In 1991 after Linus Torvalds taught his term
+program to understand the minix filesystem so he could upload and download
+without rebooting, he taught it to handle the system calls of bash so he could
+rm/mv/mkdir without rebooting.  That's where Linux 0.0.1
+came from.  Bash was the default Linux shell _before_ 0.0.1.  Be very
+careful messing with that kind of a de-facto standard, guys.  Dash is
+garbage.  Background a process with &amp; and then hit ctrl-c: it'll kill it.
+It doesn't understand blah/{blah,blah} file list syntax.  It can't do
+"source file.sh" (just ". file.sh", which is unreadable).  I repeat: I'm not a
+fan of bash (yeah, the bloat's getting crazy), but dash is broken.</p>
+
+<p>And that still doesn't explain why "vi" can't use the cursor keys in
+insert mode, but "vim" can...</p>
+
+<hr>
+<h2><a name=03-06-2007 />March 6, 2007</h2>
+<p>Version 0.2.0 is out.  This one builds ext2 images which can boot up to a
+shell prompt under qemu.  This works on i686, armv4l, x86_64, and mipsel.
+(Sparc's broken.  Anyone who cares about sparc is welcome to debug it.)</p>
+
+<p>There are now prebuilt ext2 image files in the download directory.
+The kernels are in the mini-native tarballs.  (Yeah, I should repackage that
+next release.)  The system emulator invocation for each platform is
+the appropriate sources/configs file, and run-mini-native.sh invokes 'em.</p>
+
+<p>The mailing list is in the usual place if you have any questions.</p>
+
+<hr>
+<h2><a name=01-14-2007 />January 14, 2007</h2>
+<p>There's a new irc channel for the project, #firmware on freenode.</p>
+
+<p><a href=http://landley.net/hg/firmware?cl=88>Changeset 88</a> builds
+i686, x86_64, armv4l, mips, and sparc.  I've made a release tarball of
+that (<a href=downloads/firmware-0.1.1.tar.bz2>firmware 0.1.1</a>, "It works
+for me"), and updated the prebuilt cross-compiler tarballs in the
+<a href=downloads>downloads</a> directory.  I've added a big README and
+prebuilt mini-native tarballs for each platform (although packing them up into
+something qemu can boot is currently left as an exercise for the reader).</p>
+
+<p>Speaking of which, I'm currently working on adding ext2 packaging
+(via <a href=http://landley.net/code/toybox>toybox</a>) to the build scripts,
+so qemu system emulation can boot the result and then run the next stage
+automatically.</p>
+
+<hr>
+<h2><a name=12-28-2006 />December 28, 2006</h2>
+<p><a href=http://landley.net/hg/firmware?cl=68>Changeset 68</a> builds
+a native build environment with a working toolchain.  And in celebration, I've
+revamped the website with an actual navigation bar and content and such.</p>
+
+<p>I should put out a release soon.</p>
+
+<hr>
+<h2><a name=12-05-2006 />December 5, 2006</h2>
+<p><a href=http://landley.net/hg/firmware?cl=27>Changeset 27</a> builds
+a relocatable armv4l cross-compile toolchain!  Download the tarball,
+run ./download.sh, then run ./build.sh, then grab the "build/cross-compiler"
+directory and use "bin/armv4l-unknown-linux-gnu-gcc" out of that (which
+I admit is a bit of a mouthful, for which I blame the FSF).</p>
+
+<hr>
+<h2><a name=08-06-2006 />August 6, 2006</h2>
+<p>Mecurial repository created.  Nothing to see yet, move along...</p>
+
+<!--#include file="footer.html" -->

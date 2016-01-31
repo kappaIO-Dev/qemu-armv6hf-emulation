@@ -1,0 +1,47 @@
+The following files live here:
+
+  include.sh: Common code included by every build stage.  Defines many
+              environment variables, and sources the various *functions.sh.
+
+  functions.sh: Shell functions internal to Aboriginal Linux.
+
+  utility-functions.sh: Functions usable in contexts other than the Aboriginal
+                        Linux build.
+
+  download-functions.sh: Functions to manage package source.  (Download
+                         tarballs, confirm checksums, extract and apply
+                         patches, manage package cache.)
+
+  timeout.sh: Wrapper to run a command line with a timeout.
+
+  baseconfig-linux: Common miniconfig shared by most architectures, to which
+                    $LINUX_CONFIG from the target/$ARCH/settings is appended.
+
+  baseconfig-uClibc: Common miniconfig shared by all architectures, to which
+                     $UCLIBC_CONFIG from the target/$ARCH/settings is appended.
+
+The following subdirectories live here:
+
+  native: Files copied verbatim into each architecture's root-filesystem image.
+
+  toys: Various small code snippets written or maintained for this project.
+
+  sections: Package build scripts called more than once during build.sh.
+            This is duplicate code factored out into a common location.
+
+  patches: Patches applied to the packages listed in download.sh by "setupfor".
+           Each package has "$PACKAGE-*.patch" applied in alphabetical order.
+
+  targets: Configuration for each target platform, parsed by load_target()
+           and getconfig() in functions.sh.  Each entry is a target name,
+           either a self-contained script setting configuration information,
+           or else a directory containing:
+
+      settings: Environment variables needed by the build.
+
+      miniconfig-linux: linux kernel .config compressed by toys/miniconfig.sh
+
+      miniconfig-uClibc: uClibc .config compressed by toys/miniconfig.sh
+
+  root-filesystem: Files to be copied verbatim into the target filesystem.
+                   Used by simple-root-filesystem.sh.

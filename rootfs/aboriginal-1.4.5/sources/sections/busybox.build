@@ -1,0 +1,38 @@
+# Build busybox statically by default, but don't statically link against
+# glibc (during host_tools) build because glibc is buggy and can't combine
+# --static with --gc-sections.
+
+# Build busybox
+
+if [ ! -z "$BUSYBOX" ]
+then
+  make defconfig V=${BUILD_VERBOSE:+1} &&
+  # breaks on ubuntu 11.10
+  sed -i -e 's/^\(CONFIG_UBI.*\)=y/# \1 is not set/' .config &&
+  cp .config "$WORK"/config-busybox || dienow
+else
+  getconfig busybox | sed '/toybox/,$d' > "$WORK/config-busybox" &&
+  make allnoconfig KCONFIG_ALLCONFIG="$WORK/config-busybox" || dienow
+fi
+
+LDFLAGS="$LDFLAGS $STATIC_FLAGS" make -j $CPUS V=${BUILD_VERBOSE:+1} \
+  $DO_CROSS ${ELF2FLT:+SKIP_STRIP=y} &&
+make busybox.links || dienow
+
+[ -d "$STAGE_DIR/bin" ] && INSTDIR="$STAGE_DIR/bin" || INSTDIR="$STAGE_DIR"
+
+cp busybox${SKIP_STRIP:+_unstripped} "$INSTDIR/busybox" || dienow
+
+for i in $(sed 's@.*/@@' busybox.links)
+do
+  # busybox mke2fs/tune2fs don't support -j
+  if [ "$i" == mke2fs ] || [ "$i" == tune2fs ]
+  then
+    continue
+  fi
+  [ ! -e "$INSTDIR/$i" ] && (ln -s busybox "$INSTDIR/$i" || dienow)
+done
+
+# Reset error condition, the last file already existing is not an error
+
+true

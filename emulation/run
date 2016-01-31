@@ -1,0 +1,28 @@
+#!/bin/bash
+
+# Boot the emulated system to a shell prompt.
+
+set -ex
+ARCH=armv6l
+#qemu: Supported NIC models: ne2k_pci,i82551,i82557b,i82559er,rtl8139,e1000,pcnet,virtio
+#-initrd rootfs.cpio.gz \
+# -drive file=./jessie_apt_cache.qed,index=2,media=disk,cache=unsafe \
+if [ -f 2015-11-21-raspbian-jessie.img ] 
+then
+  QEMU_EXTRA='-drive file=2015-11-21-raspbian-jessie.img,index=1,media=disk,cache=unsafe'
+else
+  QEMU_EXTRA=''
+fi
+run_emulator()
+{
+  [ ! -z "$DEBUG" ] && set -x
+  qemu-system-arm -M versatileab -m 256 -cpu arm1176 -nographic -no-reboot -kernel zImage \
+  -hda qemu_rootfs.sqf \
+  -append "root=/dev/sda init=/sbin/init.sh rw panic=1 console=ttyAMA0 HOST=armv6l $KERNEL_EXTRA" $QEMU_EXTRA \
+  -net nic,model=rtl8139 -net user -redir tcp:22000::22 -pidfile qemu.pid
+}
+
+if [ "$1" != "--norun" ]
+then
+  run_emulator
+fi

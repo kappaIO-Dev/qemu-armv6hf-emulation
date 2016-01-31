@@ -1,0 +1,24 @@
+diff --git a/src/regex/regcomp.c b/src/regex/regcomp.c
+index 978dd87..d7e7a9c 100644
+--- a/src/regex/regcomp.c
++++ b/src/regex/regcomp.c
+@@ -1008,13 +1008,18 @@ static reg_errcode_t tre_parse(tre_parse_ctx_t *ctx)
+ 		nbranch = tre_ast_new_catenation(ctx->mem, nbranch, ctx->n);
+ 		if ((ere && *s == '|') ||
+ 		    (ere && *s == ')' && depth) ||
+-		    (!ere && *s == '\\' && s[1] == ')') ||
++		    (!ere && *s == '\\' && (s[1] == ')' || s[1] == '|')) ||
+ 		    !*s) {
+ 			/* extension: empty branch is unspecified (), (|a), (a|)
+ 			   here they are not rejected but match on empty string */
+ 			int c = *s;
+ 			nunion = tre_ast_new_union(ctx->mem, nunion, nbranch);
+ 			nbranch = 0;
++
++			if (c == '\\' && s[1] == '|') {
++				s++;
++				c = '|';
++			}
+ 			if (c != '|') {
+ 				if (c == '\\') {
+ 					if (!depth) return REG_EPAREN;

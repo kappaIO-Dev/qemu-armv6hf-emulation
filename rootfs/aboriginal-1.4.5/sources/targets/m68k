@@ -1,0 +1,50 @@
+DESCRIPTION="
+Motorola 68040.
+
+Mainline qemu m68k support is actually just coldfire, an mmu-less subset of
+the m68k instruction set.
+
+To run this, you need the "q800" branch of Laurent Vivier's m68k qemu fork,
+which you can clone from git://gitorious.org/qemu-m68k/qemu-m68k
+
+Tested in version 2.1.0, it's hardwired to 128 mb memory (despite what -M says,
+even though q800 hardware went to 256 megs) and shutdown doesn't work,
+but other than that...
+"
+
+KARCH=m68k
+KERNEL_PATH=vmlinux
+GCC_FLAGS= # "--with-float=soft"
+BINUTILS_FLAGS=
+QEMU_TEST= #$KARCH
+
+CONSOLE=ttyS0
+
+UCLIBC_CONFIG="
+TARGET_m68k=y
+UCLIBC_HAS_FPU=y
+LINUXTHREADS_OLD=y
+"
+
+LINUX_CONFIG="
+CONFIG_MMU=y
+CONFIG_M68040=y
+CONFIG_M68KFPU_EMU=y
+CONFIG_MAC=y
+CONFIG_SCSI_MAC_ESP=y
+CONFIG_MACINTOSH_DRIVERS=y
+CONFIG_ADB=y
+CONFIG_ADB_MACII=y
+CONFIG_NET_CORE=y
+CONFIG_MACSONIC=y
+CONFIG_SERIAL_PMACZILOG=y
+CONFIG_SERIAL_PMACZILOG_TTYS=y
+CONFIG_SERIAL_PMACZILOG_CONSOLE=y
+
+#CONFIG_SQUASHFS_FILE_DIRECT=y
+"
+
+emulator_command()
+{
+  echo qemu-system-m68k -M q800 $(qemu_defaults "$@")
+}

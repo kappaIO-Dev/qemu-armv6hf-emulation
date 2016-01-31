@@ -1,0 +1,778 @@
+<html>
+<!--#include file="header.html" -->
+<title>Frequently Asked Questions</title>
+
+<ul>
+<li><p><a href=#where_start>Q: Where do I start?</a></p></li>
+
+<li><p><a href=#building><h1>Building System Images</h1></a></p></li>
+<ul>
+<li><p><a href=#source_tour>Q: What's all this source code for?</a></p></li>
+
+<li><p><a href=#add_package>Q: How do I add $PACKAGE to my system image's root filesystem?</a></p></li>
+
+<li><p><a href=#case_sensitive_patch>Q: I added my uClibc patch to sources/patches but it didn't do anything, what's wrong?</a></p></li>
+
+<li><p><a href=#package_breaks>Q: Why did package build $NAME die because it couldn't find $PREREQUISITE, even though it's installed?</a></p></li>
+
+<li><p><a href=#environment_sanitizing>Q: Why isn't the build listening to the environment variables I set?</p></li>
+</ul>
+
+<li><p><a href=#debugging><h1>Debugging questions</h1></a></p></li>
+
+<ul>
+<li><p><a href=#debug_logging>Q: How do I get better log output?</p></li>
+<li><p><a href=#debug_test>Q: How do I run my own build snippets without editing the build scripts?</a></p></li>
+<li><p><a href=#debug_source>Q: How do I play around with package source code?</p></li>
+<ul>
+<li><p><a href=#debug_package_cache>Q: What's the package cache for?</a></p></li>
+<li><p><a href=#debug_working_copies>Q: What are working copies for?</a></p></li>
+</ul>
+<li><p><a href=#debug_repos>Q: Can I use source code from repositories instead of tarballs?</p></li>
+</ul>
+
+<li><p><a href=#development><h1>Development questions</h1></a></p></li>
+
+<ul>
+<li><p><a href=#dev_miniconfig>Q: What's a miniconfig?</a></p></li>
+</ul>
+
+<li><p><a href=#other><h1>Other questions</h1></a></p></li>
+
+<ul>
+<li><p><a href=#name_change>Q: Didn't this used to be called Firmware Linux?</a></p></li>
+
+<li><p><a href=#ubuntu_mispackaged_qemu>Q: ./run-emulator.sh says qemu-system-mips isn't found, but I installed qemu.  Why isn't this working?</a></p></li>
+
+<li><p><a href=#windows>Q: Do you care about windows?</a></p></li>
+
+<li><p><a href=#impactlinux>Q: What happened to impactlinux.com?</a></p></li>
+<li><p><a href=#android>Q: What if I want to play with android?</a></p></li>
+<li><p><a href=#new_syscalls>Q: Why don't your prebuilt binaries
+work in my ancient system?</a></p></li>
+
+
+</ul>
+</ul>
+
+<hr /><a name=where_start /><h2>Q: Where do I start?</h2>
+
+<p>The project provides development and test environments for lots of different
+hardware platforms, based on busybox and uClibc and configured to run under
+QEMU.</p>
+
+<p>Most people want to do one of three things:</p>
+
+<li><p>Download a prebuilt system image, boot it up under the emulator, and
+compile stuff natively for a target.</p>
+
+<p>Go <a href=screenshots>here</a> and download the appropriate
+system-image-<b>$ARCH</b>.tar.bz2 for your $TARGET, extract it, cd into it,
+and <b>./run-emulator.sh</b> to boot it under qemu.</p>
+
+<p>Alternately, you can run the script <b>./development-environment.sh</b>,
+which is a wrapper around run-emulator.sh that feeds QEMU extra options to add
+memory (256 megs) and writeable disk space (a blank 2 gigabyte disk image
+mounted on /home) to provide a more capable development environment.</p>
+
+<p>The system images contain native compiler toolchains, but if you install
+distccd on the host and add the appropriate cross compiler to your host's
+$PATH, the ./run-emulator.sh script will detect this and set up the system
+image to automatically use distcc to call out to the cross compiler through
+the virtual network, speeding up native builds significantly.<p>
+</li>
+
+<li><p>Build your own cross compilers and system images from source, using
+the build scripts.</p>
+
+<p>Go to the <a href=downloads>downloads directory</a>, grab the most recent
+release tarball, extract it, and run <b>./build.sh</b> to list
+the available targets.  The run <b>./build.sh $TARGET</b> to compile
+the one you like.  The results wind up in the "build" directory.</p>
+
+<p>The build scripts are written in bash, and fairly extensively commented.
+All the scripts at the top level are designed to be run directly, and
+build.sh is just a wrapper script that calls them in order.  The less commonly
+used scripts in <b>sources/more</b> are also designed to be run directly.</p>
+
+<p>A large number of variables can be set to configure the build, either
+by modifying the file "config" (which documents them all) or by exporting
+them as environment variables.</p>
+
+<p>To grab the latest development version of the build scripts out of the
+source control system, go to the
+<a href=/hg/aboriginal>mercurial archive</a>.
+If you don't want to install mercurial, you can grab a
+<a href=/hg/aboriginal/archive/tip.tar.bz2>tarball</a> of the current code at
+any time.</p>
+</li>
+
+<li><p>Download a prebuilt cross compiler and cross-compile stuff with it.</p>
+
+<p>Go <a href=screenshots>here</a> and download the appropriate
+cross-compiler-$TARGET.tar.bz2 for your $TARGET, extract it, add its
+"bin" directory to your $PATH, and use the appropriate $TARGET-cc and
+$TARGET-ld and so on to compile your program.  (The tool names have prefixes
+so they can be in the same $PATH as your host's existing compiler.)</p>
+</li>
+
+<p>If all else fails, look at the pretty
+<a href=screenshots>screenshots</a>.</p>
+
+<hr /><a name=building />
+<h1>Building System Images</h1>
+
+<p>The build scripts compile the system images from source code.  Along
+the way, they create the cross compilers and root filesystem tarballs too.
+If you just want to use the prebuilt binary tarballs to mess around with
+native environments for various targets, you don't need to care about the
+build scripts.</p>
+
+<p>But if you want to understand how it all works, and how to reproduce it,
+then you do.</p>
+
+<p>Start by running (or reading) "build.sh", it calls everything else.</p>
+
+<hr /><a name=source_tour /><h2>Q: What's all this source code for?</h2>
+
+<p>A: The basic outline is:</p>
+
+<ul>
+<li><p><b>Top level</b> - The build stages.  The file build.sh calls the rest of these scripts in order (but you can call 'em directly too), and the file config lists all the envirionment variables you can set to change the default behavior.</p></li>
+
+<li><p><b>sources</b> - Infrastructure files which you don't call directly.</p></li>
+
+<li><p><b>more</b> - Additional scripts you can call directly to do various things, but which aren't build stages.  They have comments near the top describing what they do.</p></li>
+
+<li><p><b>build</b> - Directory generated output goes into.  All the output of running a build winds up in here, and "rm -rf build" is essentially "make clean".</p></li>
+
+<li><p><b>packages</b> - Downloaded source packages.  If you "rm -rf packages",
+the script download.sh re-populates it by calling wget on various URLs.</p></li>
+</ul>
+
+<hr /><a name=add_package /><h2>Q: How do I add $PACKAGE to my system image's root filesystem?</h2>
+
+<p>A: Either use setup-chroot to copy the root filesystem into a writeable
+chroot, or run the build scripts with SYSIMAGE_TYPE=ext2 (and probably
+HDA_MEGS=2048) to create a writeable ext2 system image instead of the default
+read-only squashfs.</p>
+
+<p>The setup-chroot command is a shell script in each system image's /sbin
+directory which copies the squashfs contents into a writeable chroot
+directory, and chroots into that directory.  Since dev-environment.sh
+creates a 2 gigabyte ext3 image and mounts it on /home, you should have
+plenty of space under there to do:</p>
+
+<blockquote><pre>
+setup-chroot /home/work /bin/ash
+</pre></blockquote>
+
+<p>The first time you run this (I.E. when the directory you want to chroot into
+doesn't exist), setup-chroot copies the root filesystem into it.</p>
+
+<p>Afterwards, setup-chroot uses "mount --bind" to copy the host filesystem's
+mounts (/proc, /sys, /tmp, and so on), then chroots into the new directory
+to run your command.  When the chroot exits, setup-chroot calls "zapchroot"
+to unmount all those sub-mounts.</p>
+
+<p>If you don't specify which command to run, chroot runs /bin/sh, which by
+default points to bash 2.04b built without ncurses.  This is good for running
+scripts but is not the world's friendliest interactive shell.</p>
+
+<p>The other thing you could do is go back to the build scripts and
+build a writeable system image by specifying the environment variable
+"SYSIMAGE_TYPE=ext2" instead of the default squashfs.  You may also want
+to set "SYSIMAGE_HDA_MEGS=2048".</p>
+
+<p>Aboriginal Linux builds squashfs images by default, and the prebuilt binary
+tarballs in
+the downloads/binaries directory are built with the default values.  Squashfs
+is a read-only compressed filesystem, which means it's pretty durable (you
+never need to fsck it), but also a bit limiting.  The dev-environment.sh
+script attaches a 2 gigabyte ext2 image to /dev/hdb (which is mounted on
+/home) so you always have writeable space to build stuff in, but that doesn't
+let you modify the root filesystem on /dev/hda: you can't install packages
+you build into /bin and such on a read-only root filesystem.</p>
+
+<p>The "SYSIMAGE_TYPE" and "SYSIMAGE_HDA_MEGS" config entries let you change
+the default system image type generated by the system-image.sh script.  You
+can edit the file "config" or specify them as environment variables, ala:</p>
+
+<blockquote><pre>
+SYSIMAGE_TYPE=ext2 SYSIMAGE_HDA_MEGS=2048 ./build.sh $TARGET
+</pre></blockquote>
+
+<p>That creates a 2 gigabyte ext2 image, which you can boot into and install
+packages natively under, using the "./run-from-build.sh $TARGET" script.
+If you've already built a system image, you can repackage the existing root
+filesystem by re-running system-image.sh (instead of the whole build.sh).
+As always, your new system image is created in the "build" subdirectory.</p>
+
+<p>Note: since this is a writeable image, you'll have to fsck it.  You can
+use "tune2fs -j" to turn it into an ext3 image to reduce the need for this.</p>
+
+<hr /><a name=case_sensitive_patch /><h2>Q: I added a uClibc patch to sources/patches but it didn't do anything, what's wrong?</h2>
+
+<p>The Linux filesystem is case sensitive, so the patch has to start with
+"uClibc-" with a capital C.</p>
+
+<hr /><a name=package_breaks /><h2>Q: Why did the $NAME package build die
+with a complaint that it couldn't find $PREREQUISITE, even though that's
+installed on the host?  (For example, distcc and python.)</h2>
+
+<p>Because you skipped the host-tools.sh step, and because installing a package
+on the host isn't the same as installing it on the target.</p>
+
+<p>Even though host-tools.sh is technically an optional step, your host has to
+be carefully set up to work without it.</p>
+
+<p>Not only does host-tools.sh add prerequisite packages your build requires,
+it _removes_ everything else from the $PATH that might change the behavior of
+the build.  Without this, the ./configure stages of various packages will
+detect that libtool exists, or that the host has Python or Perl installed,
+and configure the packages to make use of things that the cross compiler's
+headers and libraries don't have, and that the target root filesystem
+may not have installed.</p>
+
+<hr /><a name=environment_sanitizing /><h2>Q: Why isn't the build listening to the environment variables I set?</h2>
+
+<p>Quick answer: export NO_SANITIZE_ENVIRONMENT=1.</p>
+
+<p>Long answer: you probably deleted the commented out variables from "config"
+and then tried to set them on the command line.  The environment sanitizing
+logic has a whitelist of variables, but also looks at config to see what
+variables are exported in there (whether they're commented out or not) and
+lets those through from the environment as well.  If you remove them from
+config, it won't let them through from the environment.</p>
+
+<hr /><a name="debugging" /><h1>Debugging questions</h1>
+
+<hr /><a name="debug_logging" /><h2>Q: How do I get better log output from the build?</h2>
+
+<h3><b>Get a verbose, single-processor log of the build output.</b></h3>
+
+<p>When something goes wrong, re-run your build with a couple extra variables,
+and log the output with "tee":</p>
+
+<blockquote><pre>BUILD_VERBOSE=1 CPUS=1 ./build.sh 2>&1 | tee out.txt</pre></blockquote>
+
+<p>The shell has a nice syntax for exporting variables just for a single
+command, by putting the command to run after the assignment.  Doing
+that doesn't pollute your environment by leaving CPUS or BUILD_VERBOSE
+exported, but it exports them just for the new "build.sh" process it
+launches.  And redirecting stderr to stdin and piping the result into "tee"
+captures the output so you can examine it with less or vi.</p>
+
+<p>BUILD_VERBOSE undoes the "pretty printing" of the linux kernel and uClibc,
+and makes a few other build steps produce more explicit output.</p>
+
+<p>CPUS controls the number of tasks make should run in parallel.  The default
+value is the number of processors on the system, times 1.5.  (So a 4 processor
+system runs 6 processes.)  Making it single processor gives you much more
+readable output, because a single-processor build stops more reliably at the
+point where it hit a problem, rather than at some random later point forcing
+you to scroll back quite a ways to find the error.  It also shouldn't
+interleave the output of multiple parallel commands.</p>
+
+<h3><b>Use the command logging wrapper</b></h3>
+
+<p>If you need more logging detail, run more/record-commands.sh, then re-run
+the build and look at the output in build/logs.  (A similar "record-commands"
+wrapper is available in each system image's /usr/sbin directory, to
+log the commands of native builds.)</p>
+
+<p>more/record-commands.sh sets up a wrapper which logs every command (and
+all its arguments) run out of $PATH.  It populates build/wrapdir with
+symlinks for every command name currently in $PATH, all pointing to the
+"wrappy" binary (built from sources/toys/wrappy.c).  If you run record-commands
+before running host-tools.sh it wraps the host $PATH, if you run it after
+host-tools.sh it wraps the sanitized $PATH in build/host.</p>
+
+<p>The wrappy binary depends on two environment variables (set up by
+sources/include.sh): $WRAPPY_LOGPATH is an absolute path to the current
+log file (updated by the "setupfor" function) and $OLDPATH is the $PATH to
+exec the real command out of after appending the current command line to
+the log.</p>
+
+<p>The script "more/report-recorded-commands.sh" prints out a list of all
+commands used by each build stage.  (Comparing the host-tools version
+to a run without host-tools can be instructive; that's the extra stuff
+./configure is picking up out of the host environment.)</p>
+
+<p>The record-commands wrapper is also available in the target root
+filesystem's /usr/sbin directory.  Run "record-commands /path/to/script"
+and when it exits /tmp/record-commands-log.txt should list all the
+command lines run by the script, in order.</p>
+
+<hr /><a name=debug_test /><h2>Q: How do I run my own build snippets without editing the build scripts?</p></h2>
+
+<p>A: Use the more/test.sh script</p>
+
+<p>This wrapper runs a command line in build context: the first argument
+is the target to build for, and the rest of its arguments are a command line
+to run as if building for that target.</p>
+
+<p>Examples:</p>
+<blockquote><pre>
+more/test.sh armv5l build_section busybox
+more/test.sh mips getconfig linux
+</pre></blockquote>
+
+<p>The wrapper imports sources/include.sh and calls load_target (with
+NO_CLEANUP so it doesn't blank an existing output directory).  This sets up
+the same context for building for a given $ARCH that the build scripts use:
+it adds the appropriate cross compiler to the $PATH (if it's already been
+built), sets all the shell functions and environment variables,
+creates the temporary directory, and so on.  The wrapper then runs the rest of
+the command line in the resulting context.</p>
+
+<p>By default, more/test.sh acts as its own build stage called "test"
+(because include.sh uses the name of the script file you're running to set a
+default STAGE_NAME), so output winds up in build/test-armv5l and such.  You
+can override this by setting STAGE_NAME yourself, for example:</p>
+
+<blockquote><pre>
+# rebuild uClibc without redoing binutils/gcc/kernel headers stages:
+STAGE_NAME=simple-cross-compiler more/test.sh sparc build_section uClibc
+</pre></blockquote>
+
+<hr /><a name=debug_source /><h2>Q: How do I play around with package source code?</p></h2>
+
+<p>The source code used by package builds lives in several directories, each
+with a different purpose:</p>
+
+<ul>
+<li><p><b>packages</b> - vanilla upstream source tarballs (populated by download.sh).</p></li>
+<li><p><b>sources/patches</b> - local patches to apply to the vanilla packages.</li>
+<li><p><b>build/packages</b> - the package cache, clean copies of the extracted and patched source.</p></li>
+<li><p><b>build/temp-$ARCH</b> - working copies of the source configured and built for the given architecture.</p></li>
+</ul>
+
+<h3><b>Downloading</b></h3>
+
+<p>The list of source URLs is in the script download.sh, along with a list
+of mirrors to check if the original URL isn't available.  Those URLs are
+the only place that specifies version numbers for packages, so if you want
+to switch versions just point to a new URL and re-run download.sh.  (You can
+set SHA1= blank for the first download, and it will output the sha1sum for
+the file it downloads.  Cut and paste that into the download script and
+re-run to confirm.)</p>
+
+<h3><b>Extracting and patching</b></h3>
+
+<p>Each script to build a package calls the shell function "setupfor"
+before building the package, and "cleanup" afterwards.  Conceptually,
+"setupfor" extracts a tarball (from the "packages" directory),
+patches it if necessary (applying all the files in "sources/patches" that
+start with that package's name, which come from the aboriginal linux
+repository), and cd's into the resulting directory.  The function "cleanup"
+does an "rm -rf" on that directory when you're done.</p>
+
+<p>In practice, the infrastructure behind the scenes caches the extracted
+tarballs.  This optimization saves disk space, CPU time, and I/O bandwidth,
+speeding up builds considerably (especially when you do a lot of them in
+parallel).  This optimization is designed to be easily ignored, but
+understanding the infrastructure can be useful for debugging.</p>
+
+<p>There are two places to look for extracted source packages: the package
+cache and the working copy.  The <b>package cache</b> (in "build/packages")
+contains clean copies of all the previously extracted source tarballs, with
+patches already applied.  Each <b>working copy</b> (in an architecture's
+temporary directory, "build/temp-$ARCH") is a tree of hardlinks to the
+package cache that provides a directory in which to configure, build, and
+install that package for a specific target.</p>
+
+<p>The source in the package cache stays clean, can be re-used across multiple
+builds, and is only used to create working copies.  Working copies fill up
+with temporary files from configure/make/install, and are normally deleted
+after each successful build.  If you want to look at clean source, you
+want the package cache.  If you want to look at the state of a failed
+build to see how it was configured or re-run portions of it, you want the
+working copy.</p>
+
+<hr /><a name=debug_package_cache /><h2>Q: What's the package cache for?</p></h2>
+
+<p>The package cache contains clean architecture-independent source code,
+which you can edit, use to run modified builds and create patches, and easily
+revert to its original condition.  The package cache avoids re-extracting the
+same tarballs over and over, but also provides a place you can make temporary
+modifications to that source behind the build system's back without having to
+mess around with tarballs or patch files.</p>
+
+<p>The setupfor function calls "extract_package" to populate the package
+cache.  First extract_package checks for an existing copy of the appropriate
+source directory, and when it doesn't find one it extracts the source tarballs
+from the "packages" directory, applies the appropriate patches from
+"sources/patches/$PACKAGENAME-*.patch", and saves the results into its own
+directory (named after the package) under "build/packages".</p>
+
+<p>When the package cache has an existing copy of the package, extract_package
+checks the list of sha1sums in that copy's "sha1-for-source.txt" file against
+the sha1sums for the tarball and for each of the patch files it needs to apply.
+If the list matches, it uses the existing copy.  If it doesn't match, it
+deletes the existing copy out of the package cache, re-extracts the tarball,
+and reapplies each patch to it.</p>
+
+<p>This means if you can edit the copy under sources/patches all you like,
+and as long as you don't modify sha1-for-source.txt, don't replace the
+tarball, or add/remove/edit any of the patches to apply to it, it
+will re-use that source for subsequent builds.  So go ahead and fill it
+full of printf()s and test code, then when you want to go back to a clean
+copy, delete the build/packages directory (either one package or the whole
+thing) and let setupfor recreate it.</p>
+
+<p>If you come up with changes you want to keep, you can create a patch from
+the package cache this way:</p>
+
+<blockquote><pre>
+  # Rename the modified package directory
+
+  cd $TOP
+  cd build/packages
+  mv $PACKAGE $PACKAGE.bak
+
+  # Extract a clean copy
+
+  cd $TOP
+  more/test.sh host extract_package $PACKAGE
+
+  # Diff the two and write out the patch to sources/patches
+
+  cd build/packages
+  diff -ruN $PACKAGE $PACKAGE.bak > \
+    ../../sources/patches/$PACKAGE-$NAME.patch
+  rm -rf $PACKAGE
+
+  # Run a clean test build
+
+  cd $TOP
+  rm -rf build/packages/$PACKAGE
+  ./build.sh $ARCH
+</pre></blockquote>
+
+<p>Where $TOP is your top level Aboriginal Linux directory, $PACKAGE is the
+name of the package you're modifying, and $NAME is some unique name for your
+patch.  Don't forget to delete the $PACKAGE.bak directory to reclaim its disk
+space when you're satisfied with your patch (or "rm -rf build/packages" to
+zap the entire package cache, or just "rm -rf build" to clean
+up all the temporary files).</p>
+
+<p>If the environment variable EXTRACT_ALL is set, download.sh will
+call extract_package on each package as soon as it confirms the tarball's
+sha1sum.  (The environment variable FORK makes each package download happen
+in parallel, including the call to extract_package if any.)  Prepopulating
+the package cache this way is useful before running different architecture
+builds in parallel, or when testing that new patches (added to the
+sources/patches directory) apply correctly to the relevant package(s).</p>
+
+<p>This means you can do the following to get a freshly extracted and patched
+clean copy of all packages:</p>
+
+<blockquote><pre>
+  rm -rf build/packages
+  EXTRACT_ALL=1 ./download.sh
+</pre></blockquote>
+
+<hr /><a name=debug_working_copies /><h2>Q: What are working copies for?</p></h2>
+
+<p>Working copies are target-specific copies of package source where builds
+actually happen.  The build scripts clone a fresh working copy for each build,
+then run configure, make, and install commands in the new copy.  They leave the
+aftermath of failed builds lying around for analysis; to keep the working
+copies of successful builds around too, set the NO_CLEANUP environment
+variable.  If you want to cd into a source directory and re-run bits of a
+previous build, use the working copy of a package's source.  (You'll probably
+have to add the appropriate cross compiler's bin directory to your $PATH, but
+otherwise it'll usually just work.)</p>
+
+<p>Working copies of source packages are cloned from the package cache
+by the the function "setupfor", which first calls extract_package to ensure the
+package cache is up to date, then creates a directory of hardlinks to the
+package cache via "cp -l" (or symlinks via "cp -s" if $SNAPSHOT_SYMLINK is
+set).</p>
+
+<p>The working copies use hardlinks to avoid creating redundant copies of the
+file contents, which would waste I/O bandwidth and eat lots of disk space
+and disk cache memory.  Using hardlinks instead of symlinks for the working
+copies also saves inodes and dentry cache, since each symlink consumes an
+inode, but that optimization requires that the package cache and working
+copies be on the same filesystem.</p>
+
+<p>Linking to the page cache instead of copying it doesn't cause problems
+for most packages, because most methods of modifying files used by package
+builds break hardlinks or symlinks by first creating a temporary copy with
+the modifications, then deleting the original and moving the copy into its
+place.  Modifying files that are tracked by source control also creates
+spurious noise for the package's developers.  Occasionally a package will
+make a mistake (such as zlib 1.2.5 shipping a Makefile which is
+generated by configure, and modified in place), in which case the build
+has to break the link itself.  (Note that editing the working copies of
+source files in build/temp-$ARCH can modify the cached copy if your editor
+isn't configured to break hardlinks.  Usually you edit the package cache
+version and let setupfor create a new working copy.)</p>
+
+<p>If you want to search just the generated files and not the snapshot of
+the source, use "find $PACKAGE -links 1".  If you want to search just
+the source files and not the generated files, that's what the package
+cache is for.</p>
+
+<hr /><a name=debug_repos /><h2>Q: Can I use source code from repositories instead of tarballs?</h2>
+
+<p>Sure. Check them out into the packages directory with the name of the
+package you want. The more/repo.sh script provides an example for several
+packages.</p>
+
+<p>If a directory such as "packages/linux" exists, the build from that
+(instead of the package cache) for the appropriate package. Note that it
+will use this directory verbatim, if you want any of the patches from
+sources/patches you'll have to apply them yourself.</p>
+
+<p>When you'd like to build from vanilla tarballs again, either build with
+IGNORE_REPOS=all or delete the directory out of packages.</p>
+
+<a name=development>
+
+<hr /><a name=dev_miniconfig /><h2>Q: What's a miniconfig?</h2>
+
+<p>Aboriginal Linux uses "miniconfig" format for Linux and uClibc config
+files.</p>
+
+<p>A miniconfig is a list of interesting symbols to switch on.  To create a
+miniconfig, start with "allnoconfig", go into "menuconfig" to switch on all the
+symbols you want, and add a "SYMBOLNAME=y" line for each symbol you had to
+manually set.  (You don't need to record symbols set by dependency
+resolution, just the ones you'd have to set yourself to get from
+allnoconfig to the config you want.)</p>
+
+<p>Since the vast majority of these symbols are common between platforms, we
+split our miniconfigs for linux and uClibc into a "baseconfig" file
+(in the sources directory) and a list of target-specific symbols in each
+target's settings file.  We append these two together to get our miniconfig.</p>
+
+<p>To use a miniconfig:</p>
+
+<blockquote><pre>make allnoconfig KCONFIG_ALLCONFIG=filename</pre></blockquote>
+
+<p>The more/miniconfig.sh script compresses a full .config into
+a miniconfig.  To use, "cp .config tempname; ARCH=x86 $PATHTO/more/miniconfig.sh
+tempname" and the result winds up in mini.conf.</p>
+
+<p>The kernel's new defconfig format is similarly filtered to remove
+uninteresting symbols, but miniconfig has several advantages over
+savedefconfig:</p>
+
+<ul>
+<li><p>Miniconfig is human readable.</p>
+
+<p>Each miniconfig file is self-contained: it lists all the symbols we
+explicitly care about enabling.  The compressed defconfig files are offsets
+against an external "default configuration" that changes from platform to
+platform and from version to version.</p>
+
+<p>Miniconfig may rely on dependency resolution to
+switch on whatever other symbols are necessary to make this configuration
+work, but we don't have to care what those are.  We list all the symbols
+we care about, in one place, where we can easily see all the features enabled
+by this configuration.</p>
+</li>
+
+<li><p>Miniconfig doesn't have to switch any symbols off.</p>
+
+<p>Lots of symbols default to y, and the compressed defconfig files have
+to switch off symbols that are enabled by default but which this configuration
+doesn't want.  To do so it uses "magic comments".  (The
+config file format doesn't say "SYMBOL=n", it says "# SYMBOL is not set".
+Despite most things starting with a # being comments, that one isn't.)</p></li>
+</li>
+
+<li><p>Miniconfig doesn't silently bloat over time</p>
+
+<p>In each new release, new symbols show up defaulting to "y".  For example,
+between linux 2.6.38 and 2.6.39 the symbol "CONFIG_SUSPEND=y" showed up on all
+platforms, and i686 grew CONFIG_PNP_DEBUG_MESSAGES=y and seven different
+CONFIG_ACPI_* symbols all defaulting to y.  A compressed defconfig switches
+all these on by default, because the delta against defconfig it records
+doesn't switch them off.</p>
+
+<p>In miniconfig, you only get the features you requested.</p>
+</li>
+</ul>
+
+<p>The disadvantages of miniconfig are that miniconfig.sh is really slow,
+and that if new required symbols show up you have to add them to the
+miniconfig yourself.</p>
+
+<a name=other />
+<hr /><a name=name_change /><h2>Q: Didn't this used to be called Firmware Linux?</h2>
+
+<p>A: Yup.  The name changed shortly before the 1.0 release in 2010.</p>
+
+<p>The name "Aboriginal Linux" is based on a synonym for "native", as in
+native compiling.  It implies it's the first Linux on a new system, and also
+that it can be replaced.  It turns a system into something you can do
+native development in, terraforming your environment so you can use it
+to natively build your deployment environment (which may be something else
+entirely).</p>
+
+<p>Aboriginal Linux is cross compiled, but after it boots you shouldn't need
+to do any more cross compiling.  (Except optionally using the cross compiler
+as a native building accelerator via distcc.)  Hence our motto,
+"We cross compile so you don't have to".</p>
+
+<p>The old name didn't describe the project very well.  (It also had tens
+of millions of Google hits, most of which weren't this project.)  If you're
+really bored, there's a page on <a href=history.html>the history of the
+project</a>.</p>
+
+<hr /><a name=ubuntu_mispackaged_qemu /><h2>Q: ./run-emulator.sh says qemu-system-$TARGET isn't found, but I installed the qemu package and the executable "qemu" is there.  Why isn't this working?</h2>
+
+<p>A: You're using Ubuntu, aren't you?  You need to install
+"qemu-kvm-extras" to get the non-x86 targets.</p>
+
+<p>The Ubuntu developers have packaged qemu in an <strike>actively
+misleading</strike> "interesting" way.  They've confused the emulator QEMU
+with the virtualizer KVM.</p>
+
+<p>QEMU is an emulator that supports multiple hardware
+targets, translating the target code into host code a page at a time.  KVM
+stands for Kernel Virtualization Module, a kernel module which allows newer x86
+chips with support for the "VT" extension to run x86 code in a virtual
+container.</p>
+
+<p>The KVM project started life as a fork of QEMU (replacing QEMU's CPU
+emulation with a kernel module providing VT virtualization support, but
+using QEMU's device emulation for I/O), but KVM only ever offered a
+small subset of the functionality of QEMU, and current versions of QEMU have
+merged KVM support into the base package.  (QEMU 0.11.0 can automatically
+detect and use the KVM module as an accelerator, where appropriate.)</p>
+
+<p>It's a bit like the X11 project providing a "drm" module (for 3D acceleration
+and such), which was integrated upstream into the Linux kernel.  The Linux
+kernel was never part of the X11 project, and vice versa, and pretending the
+two projects were the same thing would be wrong.</p>
+
+<p>That said, on Ubuntu the "qemu" package is an alias for "qemu-kvm", a
+package which only supports i386 and x86_64 (because that's all KVM supports
+when running on an x86 PC).  In order to install the rest of qemu (support
+for emulating arm, mips, powerpc, sh4, and so on), you need to install
+the "qemu-kvm-extras" package (which despite the name has nothing whatsoever
+to do with KVM).</p>
+
+<p>Support for non-x86 targets is part of the base package when you build QEMU
+from source.  If you ignore Ubuntu's packaging insanity and build QEMU
+from source, you shouldn't have to worry about this strangely named
+artificial split.</p>
+
+<hr /><a name=windows /><h2>Q: Do you care about windows?</h2>
+
+<p>A: Not really, but <a href=http://www.davereyn.co.uk/download.htm>this
+guy does</a>.  You can download his prebuilt binary QEMU versions for Windows,
+and launch the various prebuilt binary Linux system images under them for
+each target.  Then if you want to rebuild the system images from source, or
+build more software for a given target, you can do so natively within a
+system image.</p>
+
+<p>If you want to cross compile from Cygwin or mingw or something, you're on
+your own.  Emulating a Linux system (thereby bypassing Windows entirely) is
+fairly straightforward, assuming somebody else has already done the work of
+porting the emulator.  Trying to make Windows run posix apps is an unnatural
+act involving ceremonial headgear and animal sacrifice just to get it to
+fail the same way twice.</p>
+
+<hr /><a name=impactlinux /><h2>Q: What happened to impactlinux.com?</h2>
+
+<p>In 2007 Mark Miller and I set up a small Linux consulting company,
+but after a couple years (and the recession at the end of the second
+Bush administration) we went on to other things.</p>
+
+<p>I kept the project hosted on the impactlinux.com website (which was
+higher bandwidth than landley.net), but Mark shut down the website in
+2010 when the corporation expired.  Due to a miscommunication, this caught
+me by surprise, and the mailing list archives and subscribers were lost.<p>
+
+<hr /><a name=android /><h2>Q: What if I want to play with android?</h2>
+
+<p>The Aboriginal Linux root filesystem should work just fine under Android's
+proprietary Linux kernel fork: you can extract the root-filesystem-armv5l
+tarball and chroot on most android hardware and life is good.</p>
+
+<p>Integrating Android userspace with Linux userspace is a bit more
+complicated:  Google decided they didn't want any GPL code in userspace, so they
+rewrote the whole root filesystem from scratch.  (The end result is missing
+many features, and in doing so they opened themselves to a Java
+patent lawsuit from Oratroll, we never said it was a _good_ decision.)</p>
+
+<p>This means that Android userspace doesn't use glibc or uClibc, it uses
+an incompatible BSD-derived library called "bionic".  Think "klibc with
+threading support" and you're not far off: it's missing a lot of stuff
+needed to build most conventional Linux userspace packages against it.</p>
+
+<p>However, the Android _kernel_ is mostly Linux.  It's a fragmented mix
+of several different obsolete forks with lots of garbage added, but Google's
+idea of "embedded development" focused on adding stuff to the kernel rather
+than removing stuff, so you can mostly ignore the differences.  This means
+binaries built against uClibc should run on the android kernel just fine:
+assuming they're statically linked, or that you install the uClibc shared
+libraries (possibly alongside the bionic ones).</p>
+
+<p>The other major deficiency of Android is "toolbox", which is their
+clone of busybox.  (It has nothing to do with toybox, either: that's also
+GPL.  About half the code and ideas of toybox went upstream into busybox
+anyway, the rest is mothballed.)</p>
+
+<p>Android's toolbox is crap, and the first thing any serious developer
+does is install busybox.  Here's the easy way to do that.</p>
+
+<p>Download the <a href=http://busybox.net/downloads/binaries/latest/busybox-armv5l>armv5l prebuilt busybox binary</a> from the busybox website onto your
+android device.  (These are the binaries Aboriginal Linux makes, but
+the busybox website seemed like a better place for an ex-busybox maintainer
+to save them than the Aboriginal downloads/binaries directory.  You can
+grab busybox out of root-filesystem-armv5l if you prefer.)</p>
+
+<p>This file is statically linked against uClibc, so it doesn't require
+any external dependencies, meaning it should run on an Android system.
+Now let's install it:</p>
+
+<p>Make a /busybox directory, move the busybox-armv5l binary to
+/busybox/busybox (this will both move it and rename it), and "chmod 700
+/busybox/busybox". (The toolbox chmod doesn't understand "u+x", you have
+to give it numbers.  This is one of the many, many things this procedure
+fixes.)</p>
+
+<p>Now run "PATH=/busybox busybox sh" to get a real shell prompt with command
+history.  In that command prompt run this:</p>
+
+<blockquote>
+<pre>
+for i in $(busybox --list); do ln -s busybox /busybox/$i; done
+</pre>
+</blockquote>
+
+<p>That gives you a /busybox directory full of symlinks to busybox.  You're
+running in a shell with a $PATH looking at those busybox commands, so any
+command you type should run the busybox version.</p>
+
+<p>You should be able to take it from there.</p>
+
+<hr /><a name=new_syscalls><h2>Q: Why don't your prebuilt binaries
+work in my ancient system?</h2>
+
+<p>Linux periodically adds new features, and binaries built using those
+new features may not run on old kernels.  (Linux continues to support old
+binaries, known as "backwards compatability", but does not promise that new
+programs will always run on old systems.)</p>
+
+<p>For example, powerpc Linux didn't used to have proper socket system calls
+but had to make do with more elaborate/indirect mechanisms.
+<a href=http://git.kernel.org/?p=linux/kernel/git/torvalds/linux.git;a=commit;h=86250b9d12caa1>This got fixed</a> during the 2.6.36 development cycle, and
+binaries built against a C library using the newer kernel headers will use
+the new system() syscall as appropriate, resulting in an -ENOSYS error
+on older kernels that doesn't implement the new system call.</p>
+
+<p>You can run the build against an older
+kernel (such as 2.6.35) and then run ./native-build.sh static-tools.hdc in
+the resulting system-image-powerpc to get dropbearmulti and busybox binaries
+that restrict themselves to the old system calls.</p>
+
+<!--#include file="footer.html" -->
+</html>

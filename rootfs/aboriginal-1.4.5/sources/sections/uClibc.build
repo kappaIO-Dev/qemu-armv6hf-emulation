@@ -1,0 +1,47 @@
+# Build and install uClibc
+
+# Work around a uClibc bug: it tries to use assembly directives on binutils
+# versions that don't have them.
+
+find . -name uClibc_arch_features.h | xargs sed -i 's/\#define \(__UCLIBC_HAVE_ASM_CFI_DIRECTIVES__\)/#undef \1/'
+
+[ ! -z "$BUILD_VERBOSE" ] && VERBOSITY=V=2
+
+make_uClibc()
+{
+  make -j $CPUS $VERBOSITY $DO_CROSS \
+    UCLIBC_LDSO_NAME=ld-uClibc KERNEL_HEADERS="$STAGE_DIR/include" \
+    PREFIX="$STAGE_DIR/" RUNTIME_PREFIX=/ DEVEL_PREFIX=/ $1
+}
+
+# Configure
+
+getconfig uClibc > "$WORK/mini.conf" || dienow
+
+# Build and install
+
+make KCONFIG_ALLCONFIG="$WORK/mini.conf" allnoconfig &&
+mkdir -p "$STAGE_DIR/src" &&
+cp .config "$STAGE_DIR/src/config-uClibc" &&
+make_uClibc install || dienow
+
+# Old versions of uClibc (0.9.30-ish) couldn't be told not to hardwire absolute
+# paths into their linker scripts.  This isn't needed for current versions, and
+# is allowed to fail if HAVE_SHARED=n
+
+[ -e "$STAGE_DIR/lib/libc.so" ] &&
+  sed -i 's@/lib/@@g' "$STAGE_DIR/lib/libc.so" 2>/dev/null
+
+# Build ldd and friends
+
+if [ ! -z "$HOST_ARCH" ]
+then
+  # The uClibc utils/Makefile.in is crazy.  There's no way to specify a prefix,
+  # or to pass in --static via CFLAGS.  Just build 'em by hand.
+
+  "$HOST_ARCH-cc" utils/ldd.c -o "$STAGE_DIR/bin/${TOOLCHAIN_PREFIX}ldd" \
+    --static -I ldso/include -DBUILDING_LINKAGE &&
+  "$HOST_ARCH-cc" utils/ldconfig.c utils/chroot_realpath.c \
+    -o "$STAGE_DIR/bin/${TOOLCHAIN_PREFIX}ldconfig" --static -I ldso/include \
+    -DUCLIBC_RUNTIME_PREFIX='"/"' -DBUILDING_LINKAGE || dienow
+fi

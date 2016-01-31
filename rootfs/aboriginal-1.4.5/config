@@ -1,0 +1,169 @@
+# Setup
+
+# This file is sourced, not run. It provides a place for you to persistently
+# set configuration variables.
+
+# Feel free to replace this file with your own version, or to set these
+# environment variables on the command line. By default all the variables
+# listed in this file are left blank.
+
+# This file is used by the whitelist logic to determine which variables to
+# pass through when sanitizing the environment. Don't delete the commented
+# out variables or they won't be passed through if you set them in the
+# environment.
+
+#############################################################################
+
+# Set this if you don't want to drop all unrecognized environment variables.
+
+# export NO_SANITIZE_ENVIRONMENT=1
+
+# Setting this tells build.sh to use the existing $PATH commands to build
+# everything, which probably won't work out of the box. Cross compiling is
+# an insanely delicate process which requires a carefully configured host
+# environment. If we don't set up our own, you'll have to supply one.
+
+# export NO_HOST_TOOLS=1
+
+# Set this to a comma separated list of packages to build statically,
+# or "none" to build all packages dynamically. Set to "all" to build all
+# packages statically (and not install static libraries on the target).
+
+# By default, busybox and the native compiler are built statically.
+# (Using a static busybox on the target provides a 20% performance boost to
+# autoconf under qemu, and building the native compiler static makes it much
+# more portable to other target root filesystems.)
+
+# export BUILD_STATIC=busybox,toybox,binutils,gcc-core,gcc-g++,make
+
+# If this is set, build.sh will build a cross compiler statically linked
+# against uClibc. This indicates which host that compiler should run on.
+# Note that most x86_64 systems can run a statically linked i686 binary even
+# if they don't have the 32-bit libraries installed, so that's a good default.
+
+# export CROSS_COMPILER_HOST=i686
+
+# If this is set, only build a C compiler and not C++
+
+# export NO_CPLUSPLUS=1
+
+# What kind of root filesystem to create: ext2, rootfs (combined initramfs),
+# cpio (separate initramfs), or squashfs. It defaults to cpio if blank.
+
+# export SYSIMAGE_TYPE=cpio
+
+# Size of writeable (ext2) HDA image. Does not apply to squashfs or initramfs
+
+# export SYSIMAGE_HDA_MEGS=2048
+
+# Comma separated list of packages to build from stable tarballs instead
+# of source control repositories.
+
+# export IGNORE_REPOS=all
+
+# Use qemu to run "hello world" built by the cross compiler.  Note that this
+# requires working qemu application emulation for your target, which
+# is significantly more brittle than system emulation. (To unbreak qemu-arm,
+# "echo 0 > /proc/sys/vm/mmap_min_addr" as root.)  You probably don't need
+# to do this.
+
+# export CROSS_SMOKE_TEST=1
+
+# If set, try downloading packages from this location first.
+
+# export PREFERRED_MIRROR=http://landley.net/aboriginal/mirror
+
+# Debugging option to leave source in build/temp-$ARCH after build.
+
+# export NO_CLEANUP=1
+
+# Don't create tarballs at the end of each stage.
+
+# export NO_STAGE_TARBALLS=1
+
+# Tell the linux kernel, uClibc, and busybox to show the actual build commands
+# instead of pretty-print output.
+
+# export BUILD_VERBOSE=1
+
+# Don't update the title bar in the display
+
+# export NO_TITLE_BAR=1
+
+# Create a tarball with the files installed by each individual package at
+# each stage of the build.
+
+# export BINARY_PACKAGE_TARBALLS=1
+
+# Set this if you want debug symbols in your binaries.
+
+# export SKIP_STRIP=1
+
+# Set this to tell download.sh to extract all the tarballs up-front right
+# after downloading them. (Otherwise the tarball is extracted by setupfor
+# the first time the build tries to use it.)
+#
+# Extracting tarballs early is useful in order to run multiple build.sh
+# instances in parallel when building multiple targets, or to test that
+# new patches added to the sources/patches directory apply cleanly.
+
+# export EXTRACT_ALL=1
+
+# If you build strange things (such as gcc 3.4 with binutils 2.14), you
+# may need extra host binaries added to build/host. This lets you add them.
+# In general, you don't want to do this.
+
+# export HOST_EXTRA="lex yacc"
+
+# Build with busybox defconfig instead of toybox.
+
+# export BUSYBOX=1
+
+# Set this to continue despite failed patches.
+
+# export ALLOW_PATCH_FAILURE=1
+
+# Build more things in parallel.
+
+# export FORK=1
+
+# Force a specific number of CPUs instead of autodetecting.
+
+# export CPUS=1
+
+# If set, list of packages to build with CPUS=1. (Faster than setting CPUS=1
+# for the whole build if you know ahead of time which package is going to
+# break.) Non-parallel builds give a more intelligent log output.
+
+# export DEBUG_PACKAGE=bash,busybox
+
+# This isn't actually one of our variables, but a number of packages listen
+# to this to add extra debug info to their binaries. (Use with SKIP_STRIP)
+
+# export CFLAGS="-g -pipe"
+
+# The following paths supplement the build with additional site-specific data.
+# Each path is either absolute or relative to the aboriginal topdir.
+
+# If you have patches you want patch files outside the aboriginal
+# patch directory to be applied, supply the path here. Paths to the
+# patches are built using the pattern ${MY_PATCH_DIR}/${PACKAGE}/*.patch
+# so one or more patches to apply to linux could be in the
+# ${EXTERNAL_PATCH_DIR}/linux directory and will be applied in sorted
+# order (after the builtin sources/patches/${PACKAGE}-*.patch files).
+
+# export MY_PATCH_DIR=/path/to/external/patches
+
+# If this is set, it's points to a directory containing additional files to
+# copy into the root-filesystem. (This overwrites existing conflicting files.)
+
+# export MY_ROOT_OVERLAY="overlay"
+
+# If you don't want to build cross compilers, supply path to existing one.
+# Setting these tells build.sh not to build host or native compilers
+# (the native compiler is very sensitive to libgcc build version skew).
+
+# export MY_CROSS_PATH=/path/to/cross-compiler/bin
+# export MY_CROSS_PREFIX=thingy-
+
+

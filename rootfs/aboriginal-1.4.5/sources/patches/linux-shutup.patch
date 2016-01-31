@@ -1,0 +1,27 @@
+Modern kernels crap asynchronus messages over the serial console after lauching init, hiding the shell prompt. Silence two of them.
+
+diff -ru linux/drivers/net/ethernet/intel/e1000/e1000_main.c linux.bak/drivers/net/ethernet/intel/e1000/e1000_main.c
+--- linux/drivers/net/ethernet/intel/e1000/e1000_main.c	2014-06-08 13:19:54.000000000 -0500
++++ linux.bak/drivers/net/ethernet/intel/e1000/e1000_main.c	2014-09-06 20:55:29.974299985 -0500
+@@ -2426,7 +2426,7 @@
+ 						   &adapter->link_duplex);
+ 
+ 			ctrl = er32(CTRL);
+-			pr_info("%s NIC Link is Up %d Mbps %s, "
++			pr_debug("%s NIC Link is Up %d Mbps %s, "
+ 				"Flow Control: %s\n",
+ 				netdev->name,
+ 				adapter->link_speed,
+diff --git a/drivers/char/random.c b/drivers/char/random.c
+index d0da5d8..085ec6a 100644
+--- a/drivers/char/random.c
++++ b/drivers/char/random.c
+@@ -681,7 +681,7 @@ retry:
+ 			prandom_reseed_late();
+ 			process_random_ready_list();
+ 			wake_up_all(&urandom_init_wait);
+-			pr_notice("random: %s pool is initialized\n", r->name);
++			pr_debug("random: %s pool is initialized\n", r->name);
+ 		}
+ 	}
+ 

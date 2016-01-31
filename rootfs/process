@@ -1,0 +1,36 @@
+#! /bin/sh
+
+ssh_in_to_qemu() {
+  ssh -i qemu_arm_key -p 22000 -lroot localhost "$@"
+}
+scp_in_to_qemu() {
+  scp -i qemu_arm_key -P 22000 "$1" root@localhost:"$2"
+}
+onvm_chroot() {
+  ssh_in_to_qemu /sbin/chroot /mnt "$@"
+}
+mount_apt_cache() {
+  ssh_in_to_qemu sh -e - <<EOF
+  mount -o noatime /dev/sdc /mnt/var/cache/apt
+EOF
+}
+
+disable_starting_services() {
+  onvm_chroot sh -ex - <<EOF
+export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+printf '#!/bin/sh\nexit 101\n' > /usr/sbin/policy-rc.d
+chmod 755 /usr/sbin/policy-rc.d
+EOF
+}
+allow_starting_services() {
+  onvm_chroot sh -ex - <<EOF
+rm /usr/sbin/policy-rc.d
+EOF
+}
+mount_apt_cache
+disable_starting_services
+onvm_chroot sh -ex - <<EOF
+export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+apt-get install gcc
+EOF
+allow_starting_services

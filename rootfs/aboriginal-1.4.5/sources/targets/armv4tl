@@ -1,0 +1,59 @@
+DESCRIPTION="
+ARM v4, with thumb support, little endian, EABI, soft float.
+
+This is the lowest-end arm instruction set that can support EABI, the current
+binary ABI documented by ARM.  It's used used in 920t processors (such as the
+OpenMoko Freerunner).
+
+This is \"the i386 of ARM\", an extremely generic low-end arm image that
+should run on any arm hardware still in use today (except ARMv7M, which
+is arm in name only).
+"
+
+KARCH=arm
+KERNEL_PATH=arch/${KARCH}/boot/zImage
+GCC_FLAGS="--with-march=armv4t --with-float=soft"
+BINUTILS_FLAGS=
+QEMU_TEST=$KARCH
+
+CROSS_TARGET=armv4tl-unknown-linux-gnueabi
+
+CONSOLE=ttyAMA0
+
+# This is every bit as ugly as it looks, because it's for gcc.
+export target_cpu_cname=arm9tdmi
+
+LINUX_CONFIG="
+
+# Processor config
+
+# QEMU patch: http://www.mail-archive.com/qemu-devel@nongnu.org/msg19370.html
+# and QEMU option '-cpu arm920t' enable CONFIG_CPU_ARM920T=y which is the
+# processor that actually _needs_ this code.  But until then, qemu can only
+# emulate an armv5 CPU...
+
+CONFIG_CPU_ARM926T=y
+CONFIG_MMU=y
+CONFIG_VFP=y
+CONFIG_ARM_THUMB=y
+CONFIG_AEABI=y
+
+# Versatile board
+
+CONFIG_ARCH_VERSATILE=y
+CONFIG_ARCH_VERSATILE_PB=y
+CONFIG_PCI_LEGACY=y
+CONFIG_SERIAL_NONSTANDARD=y
+CONFIG_SERIAL_AMBA_PL011=y
+CONFIG_SERIAL_AMBA_PL011_CONSOLE=y
+CONFIG_RTC_DRV_PL031=y
+CONFIG_SCSI_SYM53C8XX_2=y
+CONFIG_SCSI_SYM53C8XX_DMA_ADDRESSING_MODE=0
+CONFIG_SCSI_SYM53C8XX_MMIO=y
+"
+
+emulator_command()
+{
+  echo qemu-system-arm -M versatilepb $(qemu_defaults "$@") \
+    -net nic,model=rtl8139 -net user
+}

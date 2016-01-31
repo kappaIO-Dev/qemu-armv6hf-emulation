@@ -1,0 +1,33 @@
+DESCRIPTION="
+An i486 based computer.
+
+Yes it's obsolete, but there are embedded processors that use it.  The
+existance of an FPU is assumed, even though some i486s don't have one. 
+This is simply coz i486s with no FPU are not of interest to me.  Someone
+else can fix that if they care.
+
+Produced and tested by David Seikel.
+"
+
+KARCH=i386
+KERNEL_PATH=arch/${KARCH}/boot/bzImage
+BINUTILS_FLAGS=
+GCC_FLAGS=
+QEMU_TEST=$KARCH
+
+CONSOLE=ttyS0
+
+LINUX_CONFIG="
+CONFIG_M486=y
+CONFIG_ACPI=y
+CONFIG_BLK_DEV_PIIX=y
+CONFIG_NETDEV_1000=y
+CONFIG_E1000=y
+CONFIG_SERIAL_8250=y
+CONFIG_SERIAL_8250_CONSOLE=y
+"
+
+emulator_command()
+{
+  echo qemu-system-i386 -cpu 486 $(qemu_defaults "$@")
+}

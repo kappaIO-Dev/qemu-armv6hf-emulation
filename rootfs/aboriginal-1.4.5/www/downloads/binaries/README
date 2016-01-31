@@ -1,0 +1,150 @@
+These binary images were created by running more/buildall.sh in the most recent
+Aboriginal Linux source tarball, available at:
+
+  http://landley.net/aboriginal/downloads
+
+The source packages for these binaries are mirrored at:
+
+  http://landley.net/aboriginal/mirror
+
+The file MANIFEST lists the current package versions.  Previous versions are
+available at:
+
+  http://landley.net/aboriginal/downloads/old/binaries
+
+The current version of everything, in one big directory, is available at:
+
+  http://landley.net/aboriginal/downloads/bin
+
+==============================================================================
+
+Two types of tarballs are available at the top level of this directory:
+
+system-image-$ARCH.tar.bz2
+
+  Prepackaged bootable system images image for each target, which boot and
+  run under QEMU and allow you to natively compile additional packages within
+  the emulated development environment.  (Just wget the source tarball at the
+  shell prompt and build it more or less as you would on any other Linux host.)
+
+  This tarball includes a squashfs formatted root filesystem image containing a
+  minimal native development environment, a Linux kernel configured for use
+  with the emulator QEMU, and a wrapper script to invoke the emulator on them.
+
+  The run-emulator.sh wrapper script should produce a shell prompt, with
+  the emulator's stdin/stdout connected to the emulated system's
+  /dev/console.  See the screenshots page for examples.
+
+  The dev-environment.sh script is a wrapper around run-emulator.sh which
+  provides a better development environment, primarily by mounting a 2 gigabyte
+  writeable ext2 image on /home, and ensuring QEMU allocates at least
+  256 megabytes of memory for the emulated system.
+
+  If both distccd and a compatible $ARCH-cc cross compiler are in the $PATH,
+  dev-environment.sh will automatically set up distcc to call out through the
+  virtual network to the host's $ARCH-cc, to move the heavy lifting of
+  compilation outside the emulator, and also take advantage of SMP.  (Doing
+  so does not require the package being built to be cross compile aware.
+  As far as the emulated build environment is concerned, it's still performing
+  simple single-context native builds.)
+
+  The native-build.sh script is a wrapper around dev-environment.sh which
+  launches an automated build (driven by a control image) instead of an
+  interactive shell prompt.  (See the "control-images" directory for
+  examples.)
+
+cross-compiler-$ARCH.tar.bz2
+
+  C and C++ Cross compilers, which create target binaries for each
+  architecture, linked against uClibc (and uClibc++ for C++ source).
+
+  To use, extract this tarball anywhere and add its "bin" subdirectory to
+  your $PATH.  Then use the appropriate $ARCH-gcc as your target compiler,
+  or run dev-environment.sh to use distcc acceleration for native builds.
+
+  If both distccd and a compatible $ARCH-cc cross compiler are in the $PATH
+  when you launch a system image, the dev-environment.sh script will
+  automatically set up the emulated system to call out to the cross compiler
+  through the virtual network using distcc.  This moves the heavy lifting
+  of compilation outside the emulator, which in testing sped up some builds
+  by a factor of seven even before taking advantage of an SMP host.  (Doing
+  this does not require the package being built to be cross compile aware.
+  As far as the emulated build environment is concerned, it's still performing
+  simple single-context native builds.)
+
+  These cross compiler binaries are built to run on an i686 host and statically
+  linked against uClibc, for maximum portability between PC Linux distributions.
+  They include uClibc++ (to support C++), and multi-threading support.
+
+==============================================================================
+
+The same data is repackaged in several formats under the "root-filesystems" dir:
+
+simple-root-filesystem-$ARCH.tar.bz2
+
+  Native Linux root filesystem for a given target, suitable for chrooting into
+  (on appropriate hardware) or packaging up into a bootable system image.  It
+  contains busybox, uClibc, and a few configuration files including a
+  simple boot script (usr/sbin/init.sh).
+
+  This is the minimum necessary to boot to a reasonably polished shell prompt.
+  It does not contain development tools.
+
+native-compiler-$ARCH.tar.bz2
+
+  Statically linked version of the native compiler from root-filesystem,
+  which you can extract and run on an appropriate target the same way you
+  can extract and run the cross-compiler on the host.
+
+  You don't need this when using Aboriginal Linux's system images, which provide
+  their own native compiler.  This is provided for use with existing target
+  filesystems.
+
+root-filesystem-$ARCH.tar.bz2
+
+  Combination of simple-root-filesystem and native-compiler into a single
+  filesystem.  This is what the system images use for their minimal native
+  development environment root filesystem.
+
+==============================================================================
+
+Several additional useful native binaries are available in the "extras" dir:
+
+busybox-$ARCH
+
+  This is a static busybox binary for the given target, implementing
+  numerous standard command line utilities.  Run ./busybox-$ARCH to see
+  the list of supported commands.  It provides the default configuration
+  ("make defconfig") of busybox.
+
+  To use, copy it to a target system (perhaps via wget), set the executable
+  bit, and (optionally) create the appropriate symlinks to it:
+
+    for i in $(busybox --list); do ln -s busybox $i; done
+
+  (You don't need to install busybox into Aboriginal Linux filesystems,
+  it's already there in simple-root-filesystem and its derivatives.)
+
+dropbearmulti-$ARCH
+
+  This is a prebuilt static dropbear binary for the given target, implementing
+  an ssh server, ssh client, and associated utilities such as scp.
+
+  To use, copy it to a target system (perhaps via wget), set the executable
+  bit, and create the appropriate symlinks to it.
+
+  Run ./dropbearmulti-$ARCH to see the list of supported commands.
+
+  (Note: running the server mode requires adding at least a root user to the
+  /etc/passwd and /etc/group files, creating a host key in /etc/dropbear
+  ala "dropbearkey -t dss -f /etc/dropbear/dropbear_dss_host_key", and making
+  sure the user's home directory exists so you can put a .ssh subdirectory
+  in it with an authorized_keys file.)
+
+strace-$ARCH
+
+  This is a prebuilt static strace binary for the given target, providing a
+  debugging tool listing all the system calls made by another program.
+
+  To use, copy it to a target system (perhaps via wget) and set the executable
+  bit.

@@ -1,0 +1,28 @@
+DESCRIPTION="
+64-bit x86.
+
+Modern standard PC architecture.  Runs i686 code as well.
+"
+
+KARCH=x86_64
+KERNEL_PATH=arch/${KARCH}/boot/bzImage
+GCC_FLAGS=
+BINUTILS_FLAGS="--enable-64-bit-bfd"
+QEMU_TEST=
+
+CONSOLE=ttyS0
+
+LINUX_CONFIG="
+CONFIG_64BIT=y
+CONFIG_ACPI=y
+CONFIG_BLK_DEV_PIIX=y
+CONFIG_NETDEV_1000=y
+CONFIG_E1000=y
+CONFIG_SERIAL_8250=y
+CONFIG_SERIAL_8250_CONSOLE=y
+"
+
+emulator_command()
+{
+  echo qemu-system-x86_64 $(qemu_defaults "$@")
+}

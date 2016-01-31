@@ -1,0 +1,44 @@
+DESCRIPTION="
+Power PC, 32 bit
+
+Generic Power PC system, a basic unoptimized instruction set which
+just about any powerpc should be able to run.
+
+The main exceptions are the 440 and 880 lines, which were stripped down
+versions of the powerpc (created by IBM and Motorola, respectively) targetted
+at battery powered devices such as cell phones.  They do not support the
+entire powerpc instruction set.  (Alas, the two chose _different_ subsets, so
+they don't run each other's code either.  These days the 880 is known as
+PowerQuic.)
+"
+
+KARCH=powerpc
+KERNEL_PATH=vmlinux
+GCC_FLAGS=--enable-secureplt # --with-long-double-64 (default on 4.2.1)
+BINUTILS_FLAGS=
+QEMU_TEST=ppc
+
+CONSOLE=ttyS0
+
+LINUX_CONFIG="
+CONFIG_ALTIVEC=y
+CONFIG_PPC_PMAC=y
+CONFIG_PPC_OF_BOOT_TRAMPOLINE=y
+CONFIG_PPC601_SYNC_FIX=y
+CONFIG_PROC_DEVICETREE=y
+CONFIG_BLK_DEV_IDE_PMAC=y
+CONFIG_MACINTOSH_DRIVERS=y
+CONFIG_ADB=y
+CONFIG_ADB_CUDA=y
+CONFIG_NE2K_PCI=y
+CONFIG_SERIO=y
+CONFIG_SERIAL_PMACZILOG=y
+CONFIG_SERIAL_PMACZILOG_TTYS=y
+CONFIG_SERIAL_PMACZILOG_CONSOLE=y
+CONFIG_BOOTX_TEXT=y
+"
+
+emulator_command()
+{
+  echo qemu-system-ppc -M g3beige $(qemu_defaults "$@")
+}

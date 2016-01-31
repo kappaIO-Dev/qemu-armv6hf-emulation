@@ -1,0 +1,31 @@
+DESCRIPTION="64 bit big endian mips"
+
+KARCH=mips
+KERNEL_PATH=vmlinux
+BINUTILS_FLAGS="--enable-64-bit-bfd"
+GCC_FLAGS=
+QEMU_TEST=mips64
+
+CONSOLE=ttyS0
+
+UCLIBC_CONFIG="
+TARGET_mips=y
+CONFIG_MIPS_N64_ABI=y
+CONFIG_MIPS_ISA_MIPS64=y
+UCLIBC_HAS_FPU=y
+"
+
+LINUX_CONFIG="
+CONFIG_CPU_MIPS64_R1=y
+CONFIG_64BIT=y
+CONFIG_MIPS_MALTA=y
+CONFIG_SERIAL_8250=y
+CONFIG_SERIAL_8250_CONSOLE=y
+CONFIG_PCNET32=y
+CONFIG_BLK_DEV_PIIX=y
+"
+
+emulator_command()
+{
+  echo qemu-system-mips64 -M malta $(qemu_defaults "$@")
+}
